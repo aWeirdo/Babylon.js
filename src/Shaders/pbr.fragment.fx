@@ -66,7 +66,7 @@ uniform vec2 vAlbedoInfos;
 #ifdef AMBIENT
 varying vec2 vAmbientUV;
 uniform sampler2D ambientSampler;
-uniform vec2 vAmbientInfos;
+uniform vec3 vAmbientInfos;
 #endif
 
 #ifdef OPACITY	
@@ -87,7 +87,7 @@ uniform vec2 vLightmapInfos;
 uniform sampler2D lightmapSampler;
 #endif
 
-#if defined(REFLECTIVITY)
+#if defined(REFLECTIVITY) || defined(METALLICWORKFLOW) 
 varying vec2 vReflectivityUV;
 uniform vec2 vReflectivityInfos;
 uniform sampler2D reflectivitySampler;
@@ -171,6 +171,7 @@ uniform mat4 reflectionMatrix;
 #include<harmonicsFunctions>
 #include<pbrLightFunctions>
 
+#include<helperFunctions>
 #include<bumpFragmentFunctions>
 #include<clipPlaneFragmentDeclaration>
 #include<logDepthDeclaration>
@@ -183,6 +184,15 @@ void main(void) {
 
 	vec3 viewDirectionW = normalize(vEyePosition - vPositionW);
 
+	// Bump
+	#ifdef NORMAL
+		vec3 normalW = normalize(vNormalW);
+	#else
+		vec3 normalW = vec3(1.0, 1.0, 1.0);
+	#endif
+
+	#include<bumpFragment>
+
 	// Albedo
 	vec4 surfaceAlbedo = vec4(1., 1., 1., 1.);
 	vec3 surfaceAlbedoContribution = vAlbedoColor.rgb;
@@ -191,7 +201,7 @@ void main(void) {
 	float alpha = vAlbedoColor.a;
 
 #ifdef ALBEDO
-	surfaceAlbedo = texture2D(albedoSampler, vAlbedoUV);
+	surfaceAlbedo = texture2D(albedoSampler, vAlbedoUV + uvOffset);
 	surfaceAlbedo = vec4(toLinearSpace(surfaceAlbedo.rgb), surfaceAlbedo.a);
 
 #ifndef LINKREFRACTIONTOTRANSPARENCY
@@ -220,20 +230,12 @@ void main(void) {
 	surfaceAlbedo.rgb = mix(surfaceAlbedo.rgb, vOverloadedAlbedo, vOverloadedIntensity.y);
 #endif
 
-	// Bump
-#ifdef NORMAL
-	vec3 normalW = normalize(vNormalW);
-#else
-	vec3 normalW = vec3(1.0, 1.0, 1.0);
-#endif
-
-#include<bumpFragment>
-
 	// Ambient color
 	vec3 ambientColor = vec3(1., 1., 1.);
 
 #ifdef AMBIENT
-	ambientColor = texture2D(ambientSampler, vAmbientUV).rgb * vAmbientInfos.y;
+	ambientColor = texture2D(ambientSampler, vAmbientUV + uvOffset).rgb * vAmbientInfos.y;
+	ambientColor = vec3(1., 1., 1.) - ((vec3(1., 1., 1.) - ambientColor) * vAmbientInfos.z);
 
 #ifdef OVERLOADEDVALUES
 	ambientColor.rgb = mix(ambientColor.rgb, vOverloadedAmbient, vOverloadedIntensity.x);
@@ -249,21 +251,58 @@ void main(void) {
 #endif
 
 #ifdef REFLECTIVITY
-	vec4 surfaceReflectivityColorMap = texture2D(reflectivitySampler, vReflectivityUV);
+	vec4 surfaceReflectivityColorMap = texture2D(reflectivitySampler, vReflectivityUV + uvOffset);
 	surfaceReflectivityColor = surfaceReflectivityColorMap.rgb;
 	surfaceReflectivityColor = toLinearSpace(surfaceReflectivityColor);
 
-#ifdef OVERLOADEDVALUES
-	surfaceReflectivityColor = mix(surfaceReflectivityColor, vOverloadedReflectivity, vOverloadedIntensity.z);
+	#ifdef OVERLOADEDVALUES
+		surfaceReflectivityColor = mix(surfaceReflectivityColor, vOverloadedReflectivity, vOverloadedIntensity.z);
+	#endif
+
+	#ifdef MICROSURFACEFROMREFLECTIVITYMAP
+		microSurface = surfaceReflectivityColorMap.a;
+	#else
+		#ifdef MICROSURFACEAUTOMATIC
+			microSurface = computeDefaultMicroSurface(microSurface, surfaceReflectivityColor);
+		#endif
+	#endif
 #endif
 
-#ifdef MICROSURFACEFROMREFLECTIVITYMAP
-	microSurface = surfaceReflectivityColorMap.a;
-#else
-#ifdef MICROSURFACEAUTOMATIC
-	microSurface = computeDefaultMicroSurface(microSurface, surfaceReflectivityColor);
-#endif
-#endif
+#ifdef METALLICWORKFLOW
+	vec2 metallicRoughness = surfaceReflectivityColor.rg;
+
+	#ifdef METALLICROUGHNESSMAP
+		vec4 surfaceMetallicColorMap = texture2D(reflectivitySampler, vReflectivityUV + uvOffset);
+
+		// No gamma space from the metallic map in metallic workflow.
+		metallicRoughness.r *= surfaceMetallicColorMap.r;
+		#ifdef METALLICROUGHNESSGSTOREINALPHA
+			metallicRoughness.g *= surfaceMetallicColorMap.a;
+		#else
+			#ifdef METALLICROUGHNESSGSTOREINGREEN
+				metallicRoughness.g *= surfaceMetallicColorMap.g;
+			#endif
+		#endif
+	#endif
+
+	// Diffuse is used as the base of the reflectivity.
+	vec3 baseColor = surfaceAlbedo.rgb;
+
+	// Drop the surface diffuse by the 1.0 - metalness.
+	surfaceAlbedo.rgb *= (1.0 - metallicRoughness.r);
+	
+	// Default specular reflectance at normal incidence.
+	// 4% corresponds to index of refraction (IOR) of 1.50, approximately equal to glass.
+	const vec3 DefaultSpecularReflectanceDielectric = vec3(0.04, 0.04, 0.04);
+
+	// Compute the converted reflectivity.
+	surfaceReflectivityColor = mix(DefaultSpecularReflectanceDielectric, baseColor, metallicRoughness.r);
+
+	#ifdef OVERLOADEDVALUES
+		surfaceReflectivityColor = mix(surfaceReflectivityColor, vOverloadedReflectivity, vOverloadedIntensity.z);
+	#endif
+
+	microSurface = 1.0 - metallicRoughness.g;
 #endif
 
 #ifdef OVERLOADEDVALUES
@@ -289,7 +328,13 @@ void main(void) {
 #ifdef SPECULARTERM
 	vec3 lightSpecularContribution = vec3(0., 0., 0.);
 #endif
+	
 	float notShadowLevel = 1.; // 1 - shadowLevel
+
+	#ifdef LIGHTMAP
+  		vec3 lightmapColor = texture2D(lightmapSampler, vLightmapUV + uvOffset).rgb * vLightmapInfos.y;
+  	#endif
+
 	float NdotL = -1.;
 	lightingInfo info;
 
@@ -309,7 +354,7 @@ void main(void) {
 #endif
 
 #ifdef OPACITY
-	vec4 opacityMap = texture2D(opacitySampler, vOpacityUV);
+	vec4 opacityMap = texture2D(opacitySampler, vOpacityUV + uvOffset);
 
 #ifdef OPACITYRGB
 	opacityMap.rgb = opacityMap.rgb * vec3(0.3, 0.59, 0.11);
@@ -480,30 +525,31 @@ void main(void) {
 
 	// Compute refractance
 	vec3 refractance = vec3(0.0, 0.0, 0.0);
+
 #ifdef REFRACTION
 	vec3 transmission = vec3(1.0, 1.0, 1.0);
-#ifdef LINKREFRACTIONTOTRANSPARENCY
-	// Transmission based on alpha.
-	transmission *= (1.0 - alpha);
+	#ifdef LINKREFRACTIONTOTRANSPARENCY
+		// Transmission based on alpha.
+		transmission *= (1.0 - alpha);
 
-	// Tint the material with albedo.
-	// TODO. PBR Tinting.
-	vec3 mixedAlbedo = surfaceAlbedoContribution.rgb * surfaceAlbedo.rgb;
-	float maxChannel = max(max(mixedAlbedo.r, mixedAlbedo.g), mixedAlbedo.b);
-	vec3 tint = clamp(maxChannel * mixedAlbedo, 0.0, 1.0);
+		// Tint the material with albedo.
+		// TODO. PBR Tinting.
+		vec3 mixedAlbedo = surfaceAlbedoContribution.rgb * surfaceAlbedo.rgb;
+		float maxChannel = max(max(mixedAlbedo.r, mixedAlbedo.g), mixedAlbedo.b);
+		vec3 tint = clamp(maxChannel * mixedAlbedo, 0.0, 1.0);
 
-	// Decrease Albedo Contribution
-	surfaceAlbedoContribution *= alpha;
+		// Decrease Albedo Contribution
+		surfaceAlbedoContribution *= alpha;
 
-	// Decrease irradiance Contribution
-	environmentIrradiance *= alpha;
+		// Decrease irradiance Contribution
+		environmentIrradiance *= alpha;
 
-	// Tint reflectance
-	surfaceRefractionColor *= tint;
+		// Tint reflectance
+		surfaceRefractionColor *= tint;
 
-	// Put alpha back to 1;
-	alpha = 1.0;
-#endif
+		// Put alpha back to 1;
+		alpha = 1.0;
+	#endif
 
 	// Add Multiple internal bounces.
 	vec3 bounceSpecularEnvironmentReflectance = (2.0 * specularEnvironmentReflectance) / (1.0 + specularEnvironmentReflectance);
@@ -525,7 +571,7 @@ void main(void) {
 	// Emissive
 	vec3 surfaceEmissiveColor = vEmissiveColor;
 #ifdef EMISSIVE
-	vec3 emissiveColorTex = texture2D(emissiveSampler, vEmissiveUV).rgb;
+	vec3 emissiveColorTex = texture2D(emissiveSampler, vEmissiveUV + uvOffset).rgb;
 	surfaceEmissiveColor = toLinearSpace(emissiveColorTex.rgb) * surfaceEmissiveColor * vEmissiveInfos.y;
 #endif
 
@@ -589,13 +635,13 @@ void main(void) {
 #endif
 
 #ifdef LIGHTMAP
-	vec3 lightmapColor = texture2D(lightmapSampler, vLightmapUV).rgb * vLightmapInfos.y;
-
-#ifdef USELIGHTMAPASSHADOWMAP
-	finalColor.rgb *= lightmapColor;
-#else
-	finalColor.rgb += lightmapColor;
-#endif
+    #ifndef LIGHTMAPEXCLUDED
+        #ifdef USELIGHTMAPASSHADOWMAP
+            finalColor.rgb *= lightmapColor;
+        #else
+            finalColor.rgb += lightmapColor;
+        #endif
+    #endif
 #endif
 
 	finalColor = max(finalColor, 0.0);

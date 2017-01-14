@@ -21,6 +21,7 @@
         public _boundingInfo: BoundingInfo;
         public _delayLoadingFunction: (any: any, geometry: Geometry) => void;
         public _softwareSkinningRenderId: number;
+        private _vertexArrayObjects: { [key: string]: WebGLVertexArrayObject; };
 
         /**
          *  The Bias Vector to apply on the bounding elements (box/sphere), the max extend is computed as v += v * bias.x + bias.y, the min is computed as v -= v * bias.x + bias.y 
@@ -58,6 +59,10 @@
                 this._indices = [];
             }
 
+            if (this._engine.getCaps().vertexArrayObject) {
+                this._vertexArrayObjects = {};
+            }
+
             // applyToMesh
             if (mesh) {
                 if (mesh instanceof LinesMesh) {
@@ -84,6 +89,16 @@
 
         public isReady(): boolean {
             return this.delayLoadState === Engine.DELAYLOADSTATE_LOADED || this.delayLoadState === Engine.DELAYLOADSTATE_NONE;
+        }
+
+        public get doNotSerialize(): boolean {
+            for (var index = 0; index < this._meshes.length; index++) {
+                if (!this._meshes[index].doNotSerialize) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public setAllVerticesData(vertexData: VertexData, updatable?: boolean): void {
@@ -126,6 +141,11 @@
             }
 
             this.notifyUpdate(kind);
+
+            if (this._vertexArrayObjects) {
+                this._disposeVertexArrayObjects();
+                this._vertexArrayObjects = {}; // Will trigger a rebuild of the VAO if supported
+            }
         }
 
         public updateVerticesDataDirectly(kind: string, data: Float32Array, offset: number): void {
@@ -179,6 +199,24 @@
                     }
                 }
             }
+        }
+
+        public _bind(effect: Effect, indexToBind: WebGLBuffer = undefined): void {  
+            if (indexToBind === undefined) {
+                indexToBind = this._indexBuffer;
+            }
+
+            if (indexToBind != this._indexBuffer || !this._vertexArrayObjects) {
+                this._engine.bindBuffers(this.getVertexBuffers(), indexToBind, effect);
+                return;
+            }
+
+            // Using VAO
+            if (!this._vertexArrayObjects[effect.key]) {
+                this._vertexArrayObjects[effect.key] = this._engine.recordVertexArrayObject(this.getVertexBuffers(), indexToBind, effect);
+            }
+
+            this._engine.bindVertexArrayObject(this._vertexArrayObjects[effect.key], indexToBind);
         }
 
         public getTotalVertices(): number {
@@ -307,14 +345,6 @@
 
             if (index === -1) {
                 return;
-            }
-
-            for (var kind in this._vertexBuffers) {
-                this._vertexBuffers[kind].dispose();
-            }
-
-            if (this._indexBuffer && this._engine._releaseBuffer(this._indexBuffer)) {
-                this._indexBuffer = null;
             }
 
             meshes.splice(index, 1);
@@ -479,6 +509,15 @@
             return this._isDisposed;
         }
 
+        private _disposeVertexArrayObjects(): void {
+            if (this._vertexArrayObjects) {
+                for (var kind in this._vertexArrayObjects) {
+                    this._engine.releaseVertexArrayObject(this._vertexArrayObjects[kind]);
+                }
+                this._vertexArrayObjects = {};
+            }
+        }
+
         public dispose(): void {
             var meshes = this._meshes;
             var numOfMeshes = meshes.length;
@@ -487,6 +526,8 @@
                 this.releaseForMesh(meshes[index]);
             }
             this._meshes = [];
+
+            this._disposeVertexArrayObjects();
 
             for (var kind in this._vertexBuffers) {
                 this._vertexBuffers[kind].dispose();
@@ -584,23 +625,23 @@
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.UV2Kind)) {
-                serializationObject.uvs2 = this.getVerticesData(VertexBuffer.UV2Kind);
+                serializationObject.uv2s = this.getVerticesData(VertexBuffer.UV2Kind);
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.UV3Kind)) {
-                serializationObject.uvs3 = this.getVerticesData(VertexBuffer.UV3Kind);
+                serializationObject.uv3s = this.getVerticesData(VertexBuffer.UV3Kind);
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.UV4Kind)) {
-                serializationObject.uvs4 = this.getVerticesData(VertexBuffer.UV4Kind);
+                serializationObject.uv4s = this.getVerticesData(VertexBuffer.UV4Kind);
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.UV5Kind)) {
-                serializationObject.uvs5 = this.getVerticesData(VertexBuffer.UV5Kind);
+                serializationObject.uv5s = this.getVerticesData(VertexBuffer.UV5Kind);
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.UV6Kind)) {
-                serializationObject.uvs6 = this.getVerticesData(VertexBuffer.UV6Kind);
+                serializationObject.uv6s = this.getVerticesData(VertexBuffer.UV6Kind);
             }
 
             if (this.isVerticesDataPresent(VertexBuffer.ColorKind)) {
@@ -632,13 +673,14 @@
             return geometry.copy(id);
         }
 
-        // from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#answer-2117523
-        // be aware Math.random() could cause collisions
+        /**
+         * You should now use Tools.RandomId(), this method is still here for legacy reasons.
+         * Implementation from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#answer-2117523
+         * Be aware Math.random() could cause collisions, but:
+         * "All but 6 of the 128 bits of the ID are randomly generated, which means that for any two ids, there's a 1 in 2^^122 (or 5.3x10^^36) chance they'll collide"
+         */
         public static RandomId(): string {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+            return Tools.RandomId();
         }
 
         public static ImportGeometry(parsedGeometry: any, mesh: Mesh): void {

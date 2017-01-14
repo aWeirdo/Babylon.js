@@ -48,7 +48,11 @@
                 return null;
             }
 
-            return this.lockedTarget.position || this.lockedTarget;
+            if (this.lockedTarget.absolutePosition) {
+                this.lockedTarget.computeWorldMatrix();
+            }
+
+            return this.lockedTarget.absolutePosition || this.lockedTarget;
         }
 
         // Cache
@@ -140,7 +144,6 @@
             return this._currentTarget;
         }
 
-
         public _decideIfNeedsToMove(): boolean {
             return Math.abs(this.cameraDirection.x) > 0 || Math.abs(this.cameraDirection.y) > 0 || Math.abs(this.cameraDirection.z) > 0;
         }
@@ -227,7 +230,12 @@
                 this._currentTarget.copyFrom(this._getLockedTargetPosition());
             }
 
-            Matrix.LookAtLHToRef(this.position, this._currentTarget, this.upVector, this._viewMatrix);
+            if (this.getScene().useRightHandedSystem) {
+                Matrix.LookAtRHToRef(this.position, this._currentTarget, this.upVector, this._viewMatrix);
+            } else {
+                Matrix.LookAtLHToRef(this.position, this._currentTarget, this.upVector, this._viewMatrix);
+            }
+            
             return this._viewMatrix;
         }
 
@@ -238,7 +246,7 @@
         public createRigCamera(name: string, cameraIndex: number): Camera {
             if (this.cameraRigMode !== Camera.RIG_MODE_NONE) {
                 var rigCamera = new TargetCamera(name, this.position.clone(), this.getScene());
-                if (this.cameraRigMode === Camera.RIG_MODE_VR) {
+                if (this.cameraRigMode === Camera.RIG_MODE_VR || this.cameraRigMode === Camera.RIG_MODE_WEBVR) {
                     if (!this.rotationQuaternion) {
                         this.rotationQuaternion = new Quaternion();
                     }
@@ -274,8 +282,14 @@
                     break;
 
                 case Camera.RIG_MODE_VR:
-                    camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
-                    camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                case Camera.RIG_MODE_WEBVR:
+                    if (camLeft.rotationQuaternion) {
+                        camLeft.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                        camRight.rotationQuaternion.copyFrom(this.rotationQuaternion);
+                    } else {
+                        camLeft.rotation.copyFrom(this.rotation);
+                        camRight.rotation.copyFrom(this.rotation);
+                    }
                     camLeft.position.copyFrom(this.position);
                     camRight.position.copyFrom(this.position);
 
@@ -296,7 +310,7 @@
             Vector3.TransformCoordinatesToRef(this.position, this._rigCamTransformMatrix, result);
         }
 
-        public getTypeName(): string {
+        public getClassName(): string {
             return "TargetCamera";
         }
     }

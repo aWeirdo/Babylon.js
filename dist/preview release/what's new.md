@@ -1,55 +1,37 @@
-# 2.5.0:
+# 2.6.0:
 
 ### Major updates
-    
+ - WebGL2 context support.WebGL2 is initialized instead of WebGL 1 when available ([deltakosh](https://github.com/deltakosh))
+ - Support for [Vertex Array Objects](https://www.opengl.org/registry/specs/ARB/vertex_array_object.txt) ([deltakosh](https://github.com/deltakosh))
+ - New Unity 5 Editor Toolkit. Complete pipeline integration [Doc](TODO) - ([MackeyK24](https://github.com/MackeyK24))
+ - New DebugLayer. [Doc](TODO) - ([temechon](https://github.com/temechon))
+ - New `VideoTexture.CreateFromWebCam` to generate video texture using WebRTC. [Demo](https://www.babylonjs-playground.com#1R77YT#2) - (Sebastien Vandenberghe)(https://github.com/sebavanmicrosoft) / ([deltakosh](https://github.com/deltakosh))
+ - New `HolographicCamera` to support rendering on Windows Holographic. - ([sebavan](https://github.com/sebavan))
+ - New Facet Data feature ([jerome](https://github.com/jbousquie))
+ - babylon.fontTexture.ts was moved from babylon.js to canvas2D ([nockawa](https://github.com/nockawa))
+ - Multi-platform Compressed Textures for Desktops & Mobile Devices with fall back.  Batch (dos) scripts to convert entire directories of .jpg's & .png's ([jcpalmer](https://github.com/Palmer-JC))
+
 ### Updates
-- Added support for non square textures for sprites ([deltakosh](https://github.com/deltakosh)) 
-- Added support for texture arrays ([deltakosh](https://github.com/deltakosh)) 
-- Added `camera.isInFrustum` and `camera.isCompletelyInFrustum`. Can be used with meshes, submeshes and boundingInfo ([deltakosh](https://github.com/deltakosh)) 
-- Several memory allocation reduction ([benaadams](https://github.com/benaadams))
-- Several GPU state change reduction ([benaadams](https://github.com/benaadams)) 
-- MapTexture: add `supersample` mode to double font quality. ([nockawa](https://github.com/nockawa))
-- New `invertUV` parameter an all ribbon based shapes : ribbon, tube, lathe, basic and custom extrusion ([jerome](https://github.com/jbousquie))
-- Text2D: new `fontSuperSample` setting to use high quality font ([nockawa](https://github.com/nockawa))
-- PerfCounter class added to monitor time/counter and expose min/max/average/lastSecondAverage/current metrics. Updated engine/scene current counter to use this class, exposing new properties as well to access the PerfCounter object ([nockawa](https://github.com/nockawa))
-- Better keyboard event handling which is now done at canvas level and not at window level ([deltakosh](https://github.com/deltakosh)) 
-- New `scene.hoverCursor` property to define a custom cursor when moving mouse over meshes ([deltakosh](https://github.com/deltakosh)) 
-- Canvas2D: ([nockawa](https://github.com/nockawa)) 
- - Performance metrics added
- - Text2D super sampling to enhance quality in World Space Canvas
- - World Space Canvas is now rendering in an adaptive way for its resolution to fit the on screen projected one to achieve a good rendering quality
- - Transparent Primitives are now drawn with Instanced Array when supported
+ - Added addChild, removeChild, setParent to AbstractMesh.  ([abow](https://github.com/abow))
+ - `Effect.getVertexShaderSource()` and `Effect.getFragmentShaderSource()` now returns the effective shader code (including evaluation of #define) ([deltakosh](https://github.com/deltakosh))
+
+### Canvas2D
+
+#### Major Updates
+ - Support of [Scale9Sprite](http://doc.babylonjs.com/overviews/Canvas2D_Sprite2D#scale9sprite-feature) feature in Sprite2D ([nockawa](https://github.com/nockawa))
+ - Support of [AtlasPicture](http://doc.babylonjs.com/overviews/Canvas2D_AtlasPicture) to store many pictures into a bit one, with the possibility to create one/many Sprite2D out of it. ([nockawa](https://github.com/nockawa))
+ - Support of BMFont with the BitmaptFontTexture class, Text2D has now a bitmapFontTexture setting in the constructor to display text using a BitmapFontTexture ([nockawa](https://github.com/nockawa))
+
+#### Minor Updates
+ - Fix Rotation issue when the Parent's Primitive hadn't a identity scale. ([nockawa](https://github.com/nockawa))
+ - Primitive's position computed from TrackedNode are now hidden when the node is out of the Viewing Frustum ([nockawa](https://github.com/nockawa))
+
 
 ### Exporters
     
 ### API doc
 
 ### Bug fixes
-- MapTexture: Font Characters are now correctly aligned on Chrome ([nockawa](https://github.com/nockawa))
-- Fixed some missing parameter default values in `MeshBuilder.CreateGroundFromHeightMap()` and `MeshBuilder.CreateTiledGround()` ([jerome](https://github.com/jbousquie))
-- Fixed cross vector calculation in `_computeHeightQuads()` that affected  all the `GroundMesh.getHeightAtCoordinates()` and `GroundMesh.getNormalAtCoordinates()` methods ([jerome](https://github.com/jbousquie))
-- Fixed `Mesh.CreateDashedLines()` missing `instance` parameter on update ([jerome](https://github.com/jbousquie))
-- Added BBox update on each ribbon based shape (ribbon, tube, extrusion, etc) on dynamic updates ([jerome](https://github.com/jbousquie))
-- Fixed model shape initial red vertex color set to zero not formerly being taken in account in the `SolidParticleSystem` ([jerome](https://github.com/jbousquie))
-- Fixed RenderTargetTexture meshes selection ([deltakosh](https://github.com/deltakosh))
-- Fixed camera speed computation ([deltakosh](https://github.com/deltakosh))
-- Fixed bug with isntances, LOD and edgesRendering ([deltakosh](https://github.com/deltakosh))
-- Canvas2D: ([nockawa](https://github.com/nockawa))
- - `WorldSpaceCanvas2D`:
-	- Intersection/interaction now works on non squared canvas
- - Primitive:
-	- `ZOrder` fixed in Primitives created inline
-	- Z-Order is now correctly distributed along the whole canvas object graph
- - `Sprite2D`: 
-	- texture size is now set by default as expected
-	- can have no `id` set
- - `Text2D`: 
-	- Fix bad rendering quality on Chrome
-	- Rendering above transparent surface is now blending correctly
+ - Fixed an issue withaspect ratio when using CreateScreenshot ([deltakosh](https://github.com/deltakosh))
 
 ### Breaking changes
- - Removed legacy shaders support ([deltakosh](https://github.com/deltakosh))
- - Canvas2D: ([nockawa](https://github.com/nockawa))
-  - `WorldSpaceCanvas2D`:
-	- WorldSpaceRenderScale is no longer supported (deprecated because of adaptive feature added).
-

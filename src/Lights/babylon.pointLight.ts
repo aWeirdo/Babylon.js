@@ -12,6 +12,10 @@
             this.position = position;
         }
 
+        public getClassName(): string {
+            return "PointLight";
+        } 
+
         public getAbsolutePosition(): Vector3 {
             return this.transformedPosition ? this.transformedPosition : this.position;
         }
@@ -34,7 +38,11 @@
             if (this.parent && this.parent.getWorldMatrix) {
                 this.computeTransformedPosition();
 
-                effect.setFloat4(positionUniformName, this.transformedPosition.x, this.transformedPosition.y, this.transformedPosition.z, 0);
+                effect.setFloat4(positionUniformName,
+                    this.transformedPosition.x,
+                    this.transformedPosition.y,
+                    this.transformedPosition.z,
+                    0); 
 
                 return;
             }

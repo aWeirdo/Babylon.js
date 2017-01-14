@@ -385,7 +385,7 @@ module BABYLON {
             if (parsedTexture.name && !parsedTexture.isRenderTarget) {
                 var size = parsedTexture.isBABYLONPreprocessed ? null : parsedTexture.size;
                 texture = new BABYLON.HDRCubeTexture(rootUrl + parsedTexture.name, scene, size,
-                    texture.generateHarmonics, texture.useInGammaSpace, texture.usePMREMGenerator);
+                    parsedTexture.generateHarmonics, parsedTexture.useInGammaSpace, parsedTexture.usePMREMGenerator);
                 texture.name = parsedTexture.name;
                 texture.hasAlpha = parsedTexture.hasAlpha;
                 texture.level = parsedTexture.level;
@@ -452,7 +452,7 @@ module BABYLON {
          * @param onError Method called if any error happens during download.
          * @return The packed binary data.
          */
-        public static generateBabylonHDR(url: string, size: number, callback: ((ArrayBuffer) => void), onError: (() => void) = null): void {
+        public static generateBabylonHDR(url: string, size: number, callback: ((ArrayBuffer: ArrayBuffer) => void), onError: (() => void) = null): void {
             // Needs the url tho create the texture.
             if (!url) {
                 return null;

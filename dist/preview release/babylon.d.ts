@@ -31,12 +31,22 @@ declare module BABYLON {
         maxTextureSize: number;
         maxCubemapTextureSize: number;
         maxRenderTextureSize: number;
+        maxVertexAttribs: number;
+        maxVaryingVectors: number;
+        maxVertexUniformVectors: number;
+        maxFragmentUniformVectors: number;
         standardDerivatives: boolean;
         s3tc: WEBGL_compressed_texture_s3tc;
+        pvrtc: any;
+        etc1: any;
+        etc2: any;
+        astc: any;
+        atc: any;
         textureFloat: boolean;
+        vertexArrayObject: boolean;
         textureAnisotropicFilterExtension: EXT_texture_filter_anisotropic;
         maxAnisotropy: number;
-        instancedArrays: ANGLE_instanced_arrays;
+        instancedArrays: boolean;
         uintIndices: boolean;
         highPrecisionShaderSupported: boolean;
         fragmentDepthSupported: boolean;
@@ -47,9 +57,12 @@ declare module BABYLON {
         textureHalfFloatRender: boolean;
         textureLOD: boolean;
         drawBuffersExtension: any;
+        colorBufferFloat: boolean;
     }
     interface EngineOptions extends WebGLContextAttributes {
         limitDeviceRatio?: number;
+        autoEnableWebVR?: boolean;
+        disableWebGL2Support?: boolean;
     }
     /**
      * The engine class is responsible for interfacing with all lower-level APIs such as WebGL and Audio.
@@ -62,6 +75,7 @@ declare module BABYLON {
         private static _ALPHA_MULTIPLY;
         private static _ALPHA_MAXIMIZED;
         private static _ALPHA_ONEONE;
+        private static _ALPHA_PREMULTIPLIED;
         private static _DELAYLOADSTATE_NONE;
         private static _DELAYLOADSTATE_LOADED;
         private static _DELAYLOADSTATE_LOADING;
@@ -74,26 +88,60 @@ declare module BABYLON {
         private static _TEXTURETYPE_UNSIGNED_INT;
         private static _TEXTURETYPE_FLOAT;
         private static _TEXTURETYPE_HALF_FLOAT;
-        static ALPHA_DISABLE: number;
-        static ALPHA_ONEONE: number;
-        static ALPHA_ADD: number;
-        static ALPHA_COMBINE: number;
-        static ALPHA_SUBTRACT: number;
-        static ALPHA_MULTIPLY: number;
-        static ALPHA_MAXIMIZED: number;
-        static DELAYLOADSTATE_NONE: number;
-        static DELAYLOADSTATE_LOADED: number;
-        static DELAYLOADSTATE_LOADING: number;
-        static DELAYLOADSTATE_NOTLOADED: number;
-        static TEXTUREFORMAT_ALPHA: number;
-        static TEXTUREFORMAT_LUMINANCE: number;
-        static TEXTUREFORMAT_LUMINANCE_ALPHA: number;
-        static TEXTUREFORMAT_RGB: number;
-        static TEXTUREFORMAT_RGBA: number;
-        static TEXTURETYPE_UNSIGNED_INT: number;
-        static TEXTURETYPE_FLOAT: number;
-        static TEXTURETYPE_HALF_FLOAT: number;
-        static Version: string;
+        private static _NEVER;
+        private static _ALWAYS;
+        private static _LESS;
+        private static _EQUAL;
+        private static _LEQUAL;
+        private static _GREATER;
+        private static _GEQUAL;
+        private static _NOTEQUAL;
+        private static HALF_FLOAT_OES;
+        private static RGBA16F;
+        private static RGBA32F;
+        static readonly NEVER: number;
+        static readonly ALWAYS: number;
+        static readonly LESS: number;
+        static readonly EQUAL: number;
+        static readonly LEQUAL: number;
+        static readonly GREATER: number;
+        static readonly GEQUAL: number;
+        static readonly NOTEQUAL: number;
+        private static _KEEP;
+        private static _REPLACE;
+        private static _INCR;
+        private static _DECR;
+        private static _INVERT;
+        private static _INCR_WRAP;
+        private static _DECR_WRAP;
+        static readonly KEEP: number;
+        static readonly REPLACE: number;
+        static readonly INCR: number;
+        static readonly DECR: number;
+        static readonly INVERT: number;
+        static readonly INCR_WRAP: number;
+        static readonly DECR_WRAP: number;
+        static readonly ALPHA_DISABLE: number;
+        static readonly ALPHA_ONEONE: number;
+        static readonly ALPHA_ADD: number;
+        static readonly ALPHA_COMBINE: number;
+        static readonly ALPHA_SUBTRACT: number;
+        static readonly ALPHA_MULTIPLY: number;
+        static readonly ALPHA_MAXIMIZED: number;
+        static readonly ALPHA_PREMULTIPLIED: number;
+        static readonly DELAYLOADSTATE_NONE: number;
+        static readonly DELAYLOADSTATE_LOADED: number;
+        static readonly DELAYLOADSTATE_LOADING: number;
+        static readonly DELAYLOADSTATE_NOTLOADED: number;
+        static readonly TEXTUREFORMAT_ALPHA: number;
+        static readonly TEXTUREFORMAT_LUMINANCE: number;
+        static readonly TEXTUREFORMAT_LUMINANCE_ALPHA: number;
+        static readonly TEXTUREFORMAT_RGB: number;
+        static readonly TEXTUREFORMAT_RGBA: number;
+        static readonly TEXTURETYPE_UNSIGNED_INT: number;
+        static readonly TEXTURETYPE_FLOAT: number;
+        static readonly TEXTURETYPE_HALF_FLOAT: number;
+        static readonly Version: string;
         static CollisionsEpsilon: number;
         static CodeRepository: string;
         static ShadersRepository: string;
@@ -103,10 +151,17 @@ declare module BABYLON {
         renderEvenInBackground: boolean;
         enableOfflineSupport: boolean;
         scenes: Scene[];
+        vrDisplaysPromise: any;
+        private _vrDisplays;
+        private _vrDisplayEnabled;
+        private _oldSize;
+        private _oldHardwareScaleFactor;
+        private _vrAnimationFrameHandler;
         _gl: WebGLRenderingContext;
         private _renderingCanvas;
         private _windowIsBackground;
         private _webGLVersion;
+        private _badOS;
         static audioEngine: AudioEngine;
         private _onBlur;
         private _onFocus;
@@ -116,6 +171,7 @@ declare module BABYLON {
         private _caps;
         private _pointerLockRequested;
         private _alphaTest;
+        private _isStencilEnable;
         private _loadingScreen;
         _drawCalls: PerfCounter;
         private _glVersion;
@@ -129,6 +185,7 @@ declare module BABYLON {
         private fps;
         private deltaTime;
         private _depthCullingState;
+        private _stencilState;
         private _alphaState;
         private _alphaMode;
         private _loadedTexturesCache;
@@ -139,8 +196,8 @@ declare module BABYLON {
         private _currentProgram;
         private _compiledEffects;
         private _vertexAttribArraysEnabled;
-        private _vertexAttribArraysToUse;
         private _cachedViewport;
+        private _cachedVertexArrayObject;
         private _cachedVertexBuffers;
         private _cachedIndexBuffer;
         private _cachedEffectForVertexBuffers;
@@ -156,6 +213,12 @@ declare module BABYLON {
         private _workingContext;
         private _externalData;
         private _bindedRenderFunction;
+        private _vaoRecordInProgress;
+        private _mustWipeVertexAttributes;
+        private _texturesSupported;
+        private _textureFormatInUse;
+        readonly texturesSupported: Array<string>;
+        readonly textureFormatInUse: string;
         /**
          * @constructor
          * @param {HTMLCanvasElement} canvas - the canvas to be used for rendering
@@ -163,7 +226,11 @@ declare module BABYLON {
          * @param options - further options to be sent to the getContext function
          */
         constructor(canvas: HTMLCanvasElement, antialias?: boolean, options?: EngineOptions, adaptToDeviceRatio?: boolean);
-        webGLVersion: string;
+        readonly webGLVersion: number;
+        /**
+         * Returns true if the stencil buffer has been enabled through the creation option of the context.
+         */
+        readonly isStencilEnable: boolean;
         private _prepareWorkingCanvas();
         resetTextureCache(): void;
         getGlInfo(): {
@@ -180,14 +247,30 @@ declare module BABYLON {
         getHardwareScalingLevel(): number;
         getLoadedTexturesCache(): WebGLTexture[];
         getCaps(): EngineCapabilities;
-        drawCalls: number;
-        drawCallsPerfCounter: PerfCounter;
+        readonly drawCalls: number;
+        readonly drawCallsPerfCounter: PerfCounter;
         getDepthFunction(): number;
         setDepthFunction(depthFunc: number): void;
         setDepthFunctionToGreater(): void;
         setDepthFunctionToGreaterOrEqual(): void;
         setDepthFunctionToLess(): void;
         setDepthFunctionToLessOrEqual(): void;
+        getStencilBuffer(): boolean;
+        setStencilBuffer(enable: boolean): void;
+        getStencilMask(): number;
+        setStencilMask(mask: number): void;
+        getStencilFunction(): number;
+        getStencilFunctionReference(): number;
+        getStencilFunctionMask(): number;
+        setStencilFunction(stencilFunc: number): void;
+        setStencilFunctionReference(reference: number): void;
+        setStencilFunctionMask(mask: number): void;
+        getStencilOperationFail(): number;
+        getStencilOperationDepthFail(): number;
+        getStencilOperationPass(): number;
+        setStencilOperationFail(operation: number): void;
+        setStencilOperationDepthFail(operation: number): void;
+        setStencilOperationPass(operation: number): void;
         /**
          * stop executing a render loop function and remove it from the execution array
          * @param {Function} [renderFunction] the function to be removed. If not provided all functions will be removed.
@@ -208,8 +291,8 @@ declare module BABYLON {
          * @param {boolean} requestPointerLock - should a pointer lock be requested from the user
          * @param {any} options - an options object to be sent to the requestFullscreen function
          */
-        switchFullscreen(requestPointerLock: boolean, options?: any): void;
-        clear(color: any, backBuffer: boolean, depthStencil: boolean): void;
+        switchFullscreen(requestPointerLock: boolean): void;
+        clear(color: Color4, backBuffer: boolean, depth: boolean, stencil?: boolean): void;
         scissorClear(x: number, y: number, width: number, height: number, clearColor: Color4): void;
         /**
          * Set the WebGL's viewport
@@ -240,6 +323,11 @@ declare module BABYLON {
          * @param {number} height - the new canvas' height
          */
         setSize(width: number, height: number): void;
+        initWebVR(): void;
+        enableVR(vrDevice: any): void;
+        disableVR(): void;
+        private _onVRFullScreenTriggered;
+        private _getVRDisplays();
         bindFramebuffer(texture: WebGLTexture, faceIndex?: number, requiredWidth?: number, requiredHeight?: number): void;
         private bindUnboundFramebuffer(framebuffer);
         unBindFramebuffer(texture: WebGLTexture, disableGenerateMipMaps?: boolean): void;
@@ -257,11 +345,19 @@ declare module BABYLON {
         private bindBuffer(buffer, target);
         updateArrayBuffer(data: Float32Array): void;
         private vertexAttribPointer(buffer, indx, size, type, normalized, stride, offset);
+        private _bindIndexBufferWithCache(indexBuffer);
+        private _bindVertexBuffersAttributes(vertexBuffers, effect);
+        recordVertexArrayObject(vertexBuffers: {
+            [key: string]: VertexBuffer;
+        }, indexBuffer: WebGLBuffer, effect: Effect): WebGLVertexArrayObject;
+        bindVertexArrayObject(vertexArrayObject: WebGLVertexArrayObject, indexBuffer: WebGLBuffer): void;
         bindBuffersDirectly(vertexBuffer: WebGLBuffer, indexBuffer: WebGLBuffer, vertexDeclaration: number[], vertexStrideSize: number, effect: Effect): void;
+        private _unBindVertexArrayObject();
         bindBuffers(vertexBuffers: {
             [key: string]: VertexBuffer;
         }, indexBuffer: WebGLBuffer, effect: Effect): void;
         unbindInstanceAttributes(): void;
+        releaseVertexArrayObject(vao: WebGLVertexArrayObject): void;
         _releaseBuffer(buffer: WebGLBuffer): boolean;
         createInstancesBuffer(capacity: number): WebGLBuffer;
         deleteInstancesBuffer(buffer: WebGLBuffer): void;
@@ -311,7 +407,28 @@ declare module BABYLON {
         getAlphaTesting(): boolean;
         wipeCaches(): void;
         setSamplingMode(texture: WebGLTexture, samplingMode: number): void;
-        createTexture(url: string, noMipmap: boolean, invertY: boolean, scene: Scene, samplingMode?: number, onLoad?: () => void, onError?: () => void, buffer?: any): WebGLTexture;
+        /**
+         * Set the compressed texture format to use, based on the formats you have, and the formats
+         * supported by the hardware / browser.
+         *
+         * Khronos Texture Container (.ktx) files are used to support this.  This format has the
+         * advantage of being specifically designed for OpenGL.  Header elements directly correspond
+         * to API arguments needed to compressed textures.  This puts the burden on the container
+         * generator to house the arcane code for determining these for current & future formats.
+         *
+         * for description see https://www.khronos.org/opengles/sdk/tools/KTX/
+         * for file layout see https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
+         *
+         * Note: The result of this call is not taken into account when a texture is base64.
+         *
+         * @param {Array<string>} formatsAvailable- The list of those format families you have created
+         * on your server.  Syntax: '-' + format family + '.ktx'.  (Case and order do not matter.)
+         *
+         * Current families are astc, dxt, pvrtc, etc2, atc, & etc1.
+         * @returns The extension selected.
+         */
+        setTextureFormatToUse(formatsAvailable: Array<string>): string;
+        createTexture(urlArg: string, noMipmap: boolean, invertY: boolean, scene: Scene, samplingMode?: number, onLoad?: () => void, onError?: () => void, buffer?: any, fallBack?: WebGLTexture): WebGLTexture;
         private _getInternalFormat(format);
         updateRawTexture(texture: WebGLTexture, data: ArrayBufferView, format: number, invertY: boolean, compression?: string): void;
         createRawTexture(data: ArrayBufferView, width: number, height: number, format: number, generateMipMaps: boolean, invertY: boolean, samplingMode: number, compression?: string): WebGLTexture;
@@ -321,9 +438,9 @@ declare module BABYLON {
         updateVideoTexture(texture: WebGLTexture, video: HTMLVideoElement, invertY: boolean): void;
         createRenderTargetTexture(size: any, options: any): WebGLTexture;
         createRenderTargetCubeTexture(size: number, options?: any): WebGLTexture;
-        createCubeTexture(rootUrl: string, scene: Scene, files: string[], noMipmap?: boolean): WebGLTexture;
+        createCubeTexture(rootUrl: string, scene: Scene, files: string[], noMipmap?: boolean, onLoad?: () => void, onError?: () => void): WebGLTexture;
         updateTextureSize(texture: WebGLTexture, width: number, height: number): void;
-        createRawCubeTexture(url: string, scene: Scene, size: number, format: number, type: number, noMipmap: boolean, callback: (ArrayBuffer) => ArrayBufferView[], mipmmapGenerator: ((faces: ArrayBufferView[]) => ArrayBufferView[][])): WebGLTexture;
+        createRawCubeTexture(url: string, scene: Scene, size: number, format: number, type: number, noMipmap: boolean, callback: (ArrayBuffer: ArrayBuffer) => ArrayBufferView[], mipmmapGenerator: ((faces: ArrayBufferView[]) => ArrayBufferView[][])): WebGLTexture;
         _releaseTexture(texture: WebGLTexture): void;
         private setProgram(program);
         bindSamplers(effect: Effect): void;
@@ -366,6 +483,7 @@ declare module BABYLON {
          */
         removeExternalData(key: any): boolean;
         releaseInternalTexture(texture: WebGLTexture): void;
+        unbindAllAttributes(): void;
         dispose(): void;
         displayLoadingUI(): void;
         hideLoadingUI(): void;
@@ -374,12 +492,16 @@ declare module BABYLON {
         loadingUIBackgroundColor: string;
         attachContextLostEvent(callback: ((event: WebGLContextEvent) => void)): void;
         attachContextRestoredEvent(callback: ((event: WebGLContextEvent) => void)): void;
+        getVertexShaderSource(program: WebGLProgram): string;
+        getFragmentShaderSource(program: WebGLProgram): string;
         getFps(): number;
         getDeltaTime(): number;
         private _measureFps();
-        private _canRenderToFloatTexture();
-        private _canRenderToHalfFloatTexture();
-        private _canRenderToTextureOfType(format, extension);
+        private _canRenderToFloatFramebuffer();
+        private _canRenderToHalfFloatFramebuffer();
+        private _canRenderToFramebuffer(type);
+        private _getWebGLTextureType(type);
+        private _getRGBABufferInternalSizedFormat(type);
         static isSupported(): boolean;
     }
 }
@@ -387,6 +509,7 @@ declare module BABYLON {
 interface Window {
     mozIndexedDB(func: any): any;
     webkitIndexedDB(func: any): any;
+    msIndexedDB: IDBFactory;
     IDBTransaction(func: any): any;
     webkitIDBTransaction(func: any): any;
     msIDBTransaction(func: any): any;
@@ -404,6 +527,24 @@ interface Window {
     AudioContext: AudioContext;
     webkitAudioContext: AudioContext;
     PointerEvent: any;
+    Math: Math;
+    Uint8Array: Uint8ArrayConstructor;
+    Float32Array: Float32ArrayConstructor;
+    mozURL: any;
+    msURL: any;
+}
+interface WebGLVertexArrayObject {
+}
+interface WebGLRenderingContext {
+    drawArraysInstanced(mode: number, first: number, count: number, primcount: number): void;
+    drawElementsInstanced(mode: number, count: number, type: number, offset: number, primcount: number): void;
+    vertexAttribDivisor(index: number, divisor: number): void;
+    createVertexArray(): any;
+    bindVertexArray(vao: WebGLVertexArrayObject): void;
+    deleteVertexArray(vao: WebGLVertexArrayObject): void;
+}
+interface AudioContext extends EventTarget {
+    decodeAudioData(audioData: ArrayBuffer, successCallback: DecodeSuccessCallback, errorCallback?: any): void;
 }
 interface HTMLURL {
     createObjectURL(param1: any, param2?: any): any;
@@ -422,9 +563,9 @@ interface Document {
 }
 interface HTMLCanvasElement {
     requestPointerLock(): void;
-    msRequestPointerLock(): void;
-    mozRequestPointerLock(): void;
-    webkitRequestPointerLock(): void;
+    msRequestPointerLock?(): void;
+    mozRequestPointerLock?(): void;
+    webkitRequestPointerLock?(): void;
 }
 interface CanvasRenderingContext2D {
     imageSmoothingEnabled: boolean;
@@ -441,6 +582,7 @@ interface WebGLTexture {
     references: number;
     generateMipMaps: boolean;
     type: number;
+    onLoadedCallbacks: Array<Function>;
     _size: number;
     _baseWidth: number;
     _baseHeight: number;
@@ -473,9 +615,16 @@ interface MSStyleCSSProperties {
     webkitTransition: string;
 }
 interface Navigator {
-    getVRDevices: () => any;
+    getVRDisplays: () => any;
     mozGetVRDevices: (any: any) => any;
     isCocoonJS: boolean;
+    getUserMedia: any;
+    webkitGetUserMedia: any;
+    mozGetUserMedia: any;
+    msGetUserMedia: any;
+}
+interface HTMLVideoElement {
+    mozSrcObject: any;
 }
 interface Screen {
     orientation: string;
@@ -483,6 +632,413 @@ interface Screen {
 }
 interface HTMLMediaElement {
     crossOrigin: string;
+}
+interface Math {
+    fround(x: number): number;
+    imul(a: number, b: number): number;
+}
+interface SIMDglobal {
+    SIMD: SIMD;
+    Math: Math;
+    Uint8Array: Uint8ArrayConstructor;
+    Float32Array: Float32ArrayConstructor;
+}
+interface SIMD {
+    Float32x4: SIMD.Float32x4Constructor;
+    Int32x4: SIMD.Int32x4Constructor;
+    Int16x8: SIMD.Int16x8Constructor;
+    Int8x16: SIMD.Int8x16Constructor;
+    Uint32x4: SIMD.Uint32x4Constructor;
+    Uint16x8: SIMD.Uint16x8Constructor;
+    Uint8x16: SIMD.Uint8x16Constructor;
+    Bool32x4: SIMD.Bool32x4Constructor;
+    Bool16x8: SIMD.Bool16x8Constructor;
+    Bool8x16: SIMD.Bool8x16Constructor;
+}
+declare namespace SIMD {
+    interface Float32x4 {
+        constructor: Float32x4Constructor;
+        valueOf(): Float32x4;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Float32x4Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number): Float32x4;
+        prototype: Float32x4;
+        extractLane(simd: SIMD.Float32x4, lane: number): number;
+        swizzle(a: SIMD.Float32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Float32x4;
+        shuffle(a: SIMD.Float32x4, b: SIMD.Float32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Float32x4;
+        check(a: SIMD.Float32x4): SIMD.Float32x4;
+        splat(n: number): SIMD.Float32x4;
+        replaceLane(simd: SIMD.Float32x4, lane: number, value: number): SIMD.Float32x4;
+        select(selector: SIMD.Bool32x4, a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        equal(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        notEqual(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        lessThan(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        lessThanOrEqual(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        greaterThan(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        greaterThanOrEqual(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Bool32x4;
+        add(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        sub(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        mul(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        div(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        neg(a: SIMD.Float32x4): SIMD.Float32x4;
+        abs(a: SIMD.Float32x4): SIMD.Float32x4;
+        min(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        max(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        minNum(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        maxNum(a: SIMD.Float32x4, b: SIMD.Float32x4): SIMD.Float32x4;
+        reciprocalApproximation(a: SIMD.Float32x4): SIMD.Float32x4;
+        reciprocalSqrtApproximation(a: SIMD.Float32x4): SIMD.Float32x4;
+        sqrt(a: SIMD.Float32x4): SIMD.Float32x4;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Float32x4;
+        load1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Float32x4;
+        load2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Float32x4;
+        load3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Float32x4;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Float32x4): SIMD.Float32x4;
+        store1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Float32x4): SIMD.Float32x4;
+        store2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Float32x4): SIMD.Float32x4;
+        store3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Float32x4): SIMD.Float32x4;
+        fromInt32x4(value: SIMD.Int32x4): SIMD.Float32x4;
+        fromUint32x4(value: SIMD.Uint32x4): SIMD.Float32x4;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Float32x4;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Float32x4;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Float32x4;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Float32x4;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Float32x4;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Float32x4;
+    }
+    interface Int32x4 {
+        constructor: Int32x4Constructor;
+        valueOf(): Int32x4;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Int32x4Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number): Int32x4;
+        prototype: Int32x4;
+        extractLane(simd: SIMD.Int32x4, lane: number): number;
+        swizzle(a: SIMD.Int32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Int32x4;
+        shuffle(a: SIMD.Int32x4, b: SIMD.Int32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Int32x4;
+        check(a: SIMD.Int32x4): SIMD.Int32x4;
+        splat(n: number): SIMD.Int32x4;
+        replaceLane(simd: SIMD.Int32x4, lane: number, value: number): SIMD.Int32x4;
+        select(selector: SIMD.Bool32x4, a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        equal(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        notEqual(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        lessThan(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        lessThanOrEqual(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        greaterThan(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        greaterThanOrEqual(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Bool32x4;
+        and(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        or(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        xor(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        not(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        add(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        sub(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        mul(a: SIMD.Int32x4, b: SIMD.Int32x4): SIMD.Int32x4;
+        neg(a: SIMD.Int32x4): SIMD.Int32x4;
+        shiftLeftByScalar(a: SIMD.Int32x4, bits: number): SIMD.Int32x4;
+        shiftRightByScalar(a: SIMD.Int32x4, bits: number): SIMD.Int32x4;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int32x4;
+        load1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int32x4;
+        load2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int32x4;
+        load3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int32x4;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int32x4): SIMD.Int32x4;
+        store1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int32x4): SIMD.Int32x4;
+        store2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int32x4): SIMD.Int32x4;
+        store3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int32x4): SIMD.Int32x4;
+        fromFloat32x4(value: SIMD.Float32x4): SIMD.Int32x4;
+        fromUint32x4(value: SIMD.Uint32x4): SIMD.Int32x4;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Int32x4;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Int32x4;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Int32x4;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Int32x4;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Int32x4;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Int32x4;
+    }
+    interface Int16x8 {
+        constructor: Int16x8Constructor;
+        valueOf(): Int16x8;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Int16x8Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number, s4?: number, s5?: number, s6?: number, s7?: number): Int16x8;
+        prototype: Int16x8;
+        extractLane(simd: SIMD.Int16x8, lane: number): number;
+        swizzle(a: SIMD.Int16x8, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number): SIMD.Int16x8;
+        shuffle(a: SIMD.Int16x8, b: SIMD.Int16x8, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number): SIMD.Int16x8;
+        check(a: SIMD.Int16x8): SIMD.Int16x8;
+        splat(n: number): SIMD.Int16x8;
+        replaceLane(simd: SIMD.Int16x8, lane: number, value: number): SIMD.Int16x8;
+        select(selector: SIMD.Bool16x8, a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        equal(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        notEqual(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        lessThan(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        lessThanOrEqual(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        greaterThan(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        greaterThanOrEqual(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Bool16x8;
+        and(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        or(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        xor(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        not(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        add(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        sub(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        mul(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        neg(a: SIMD.Int16x8): SIMD.Int16x8;
+        shiftLeftByScalar(a: SIMD.Int16x8, bits: number): SIMD.Int16x8;
+        shiftRightByScalar(a: SIMD.Int16x8, bits: number): SIMD.Int16x8;
+        addSaturate(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        subSaturate(a: SIMD.Int16x8, b: SIMD.Int16x8): SIMD.Int16x8;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int16x8;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int16x8): SIMD.Int16x8;
+        fromUint16x8(value: SIMD.Uint16x8): SIMD.Int16x8;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Int16x8;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Int16x8;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Int16x8;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Int16x8;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Int16x8;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Int16x8;
+    }
+    interface Int8x16 {
+        constructor: Int8x16Constructor;
+        valueOf(): Int8x16;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Int8x16Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number, s4?: number, s5?: number, s6?: number, s7?: number, s8?: number, s9?: number, s10?: number, s11?: number, s12?: number, s13?: number, s14?: number, s15?: number): Int8x16;
+        prototype: Int8x16;
+        extractLane(simd: SIMD.Int8x16, lane: number): number;
+        swizzle(a: SIMD.Int8x16, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number, l9: number, l10: number, l11: number, l12: number, l13: number, l14: number, l15: number, l16: number): SIMD.Int8x16;
+        shuffle(a: SIMD.Int8x16, b: SIMD.Int8x16, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number, l9: number, l10: number, l11: number, l12: number, l13: number, l14: number, l15: number, l16: number): SIMD.Int8x16;
+        check(a: SIMD.Int8x16): SIMD.Int8x16;
+        splat(n: number): SIMD.Int8x16;
+        replaceLane(simd: SIMD.Int8x16, lane: number, value: number): SIMD.Int8x16;
+        select(selector: SIMD.Bool8x16, a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        equal(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        notEqual(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        lessThan(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        lessThanOrEqual(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        greaterThan(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        greaterThanOrEqual(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Bool8x16;
+        and(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        or(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        xor(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        not(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        add(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        sub(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        mul(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        neg(a: SIMD.Int8x16): SIMD.Int8x16;
+        shiftLeftByScalar(a: SIMD.Int8x16, bits: number): SIMD.Int8x16;
+        shiftRightByScalar(a: SIMD.Int8x16, bits: number): SIMD.Int8x16;
+        addSaturate(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        subSaturate(a: SIMD.Int8x16, b: SIMD.Int8x16): SIMD.Int8x16;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Int8x16;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Int8x16): SIMD.Int8x16;
+        fromUint8x16(value: SIMD.Uint8x16): SIMD.Int8x16;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Int8x16;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Int8x16;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Int8x16;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Int8x16;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Int8x16;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Int8x16;
+    }
+    interface Uint32x4 {
+        constructor: Uint32x4Constructor;
+        valueOf(): Uint32x4;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Uint32x4Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number): Uint32x4;
+        prototype: Uint32x4;
+        extractLane(simd: SIMD.Uint32x4, lane: number): number;
+        swizzle(a: SIMD.Uint32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Uint32x4;
+        shuffle(a: SIMD.Uint32x4, b: SIMD.Uint32x4, l1: number, l2: number, l3: number, l4: number): SIMD.Uint32x4;
+        check(a: SIMD.Uint32x4): SIMD.Uint32x4;
+        splat(n: number): SIMD.Uint32x4;
+        replaceLane(simd: SIMD.Uint32x4, lane: number, value: number): SIMD.Uint32x4;
+        select(selector: SIMD.Bool32x4, a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        equal(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        notEqual(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        lessThan(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        lessThanOrEqual(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        greaterThan(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        greaterThanOrEqual(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Bool32x4;
+        and(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        or(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        xor(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        not(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        add(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        sub(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        mul(a: SIMD.Uint32x4, b: SIMD.Uint32x4): SIMD.Uint32x4;
+        shiftLeftByScalar(a: SIMD.Uint32x4, bits: number): SIMD.Uint32x4;
+        shiftRightByScalar(a: SIMD.Uint32x4, bits: number): SIMD.Uint32x4;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint32x4;
+        load1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint32x4;
+        load2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint32x4;
+        load3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint32x4;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint32x4): SIMD.Uint32x4;
+        store1(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint32x4): SIMD.Uint32x4;
+        store2(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint32x4): SIMD.Uint32x4;
+        store3(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint32x4): SIMD.Uint32x4;
+        fromFloat32x4(value: SIMD.Float32x4): SIMD.Uint32x4;
+        fromInt32x4(value: SIMD.Int32x4): SIMD.Uint32x4;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Uint32x4;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Uint32x4;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Uint32x4;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Uint32x4;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Uint32x4;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Uint32x4;
+    }
+    interface Uint16x8 {
+        constructor: Uint16x8Constructor;
+        valueOf(): Uint16x8;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Uint16x8Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number, s4?: number, s5?: number, s6?: number, s7?: number): Uint16x8;
+        prototype: Uint16x8;
+        extractLane(simd: SIMD.Uint16x8, lane: number): number;
+        swizzle(a: SIMD.Uint16x8, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number): SIMD.Uint16x8;
+        shuffle(a: SIMD.Uint16x8, b: SIMD.Uint16x8, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number): SIMD.Uint16x8;
+        check(a: SIMD.Uint16x8): SIMD.Uint16x8;
+        splat(n: number): SIMD.Uint16x8;
+        replaceLane(simd: SIMD.Uint16x8, lane: number, value: number): SIMD.Uint16x8;
+        select(selector: SIMD.Bool16x8, a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        equal(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        notEqual(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        lessThan(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        lessThanOrEqual(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        greaterThan(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        greaterThanOrEqual(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Bool16x8;
+        and(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        or(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        xor(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        not(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        add(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        sub(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        mul(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        shiftLeftByScalar(a: SIMD.Uint16x8, bits: number): SIMD.Uint16x8;
+        shiftRightByScalar(a: SIMD.Uint16x8, bits: number): SIMD.Uint16x8;
+        addSaturate(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        subSaturate(a: SIMD.Uint16x8, b: SIMD.Uint16x8): SIMD.Uint16x8;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint16x8;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint16x8): SIMD.Uint16x8;
+        fromInt16x8(value: SIMD.Int16x8): SIMD.Uint16x8;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Uint16x8;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Uint16x8;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Uint16x8;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Uint16x8;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Uint16x8;
+        fromUint8x16Bits(value: SIMD.Uint8x16): SIMD.Uint16x8;
+    }
+    interface Uint8x16 {
+        constructor: Uint8x16Constructor;
+        valueOf(): Uint8x16;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Uint8x16Constructor {
+        (s0?: number, s1?: number, s2?: number, s3?: number, s4?: number, s5?: number, s6?: number, s7?: number, s8?: number, s9?: number, s10?: number, s11?: number, s12?: number, s13?: number, s14?: number, s15?: number): Uint8x16;
+        prototype: Uint8x16;
+        extractLane(simd: SIMD.Uint8x16, lane: number): number;
+        swizzle(a: SIMD.Uint8x16, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number, l9: number, l10: number, l11: number, l12: number, l13: number, l14: number, l15: number, l16: number): SIMD.Uint8x16;
+        shuffle(a: SIMD.Uint8x16, b: SIMD.Uint8x16, l1: number, l2: number, l3: number, l4: number, l5: number, l6: number, l7: number, l8: number, l9: number, l10: number, l11: number, l12: number, l13: number, l14: number, l15: number, l16: number): SIMD.Uint8x16;
+        check(a: SIMD.Uint8x16): SIMD.Uint8x16;
+        splat(n: number): SIMD.Uint8x16;
+        replaceLane(simd: SIMD.Uint8x16, lane: number, value: number): SIMD.Uint8x16;
+        select(selector: SIMD.Bool8x16, a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        equal(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        notEqual(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        lessThan(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        lessThanOrEqual(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        greaterThan(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        greaterThanOrEqual(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Bool8x16;
+        and(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        or(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        xor(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        not(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        add(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        sub(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        mul(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        shiftLeftByScalar(a: SIMD.Uint8x16, bits: number): SIMD.Uint8x16;
+        shiftRightByScalar(a: SIMD.Uint8x16, bits: number): SIMD.Uint8x16;
+        addSaturate(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        subSaturate(a: SIMD.Uint8x16, b: SIMD.Uint8x16): SIMD.Uint8x16;
+        load(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number): SIMD.Uint8x16;
+        store(tarray: Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array, index: number, value: SIMD.Uint8x16): SIMD.Uint8x16;
+        fromInt8x16(value: SIMD.Int8x16): SIMD.Uint8x16;
+        fromFloat32x4Bits(value: SIMD.Float32x4): SIMD.Uint8x16;
+        fromInt32x4Bits(value: SIMD.Int32x4): SIMD.Uint8x16;
+        fromInt16x8Bits(value: SIMD.Int16x8): SIMD.Uint8x16;
+        fromInt8x16Bits(value: SIMD.Int8x16): SIMD.Uint8x16;
+        fromUint32x4Bits(value: SIMD.Uint32x4): SIMD.Uint8x16;
+        fromUint16x8Bits(value: SIMD.Uint16x8): SIMD.Uint8x16;
+    }
+    interface Bool32x4 {
+        constructor: Bool32x4Constructor;
+        valueOf(): Bool32x4;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Bool32x4Constructor {
+        (s0?: boolean, s1?: boolean, s2?: boolean, s3?: boolean): Bool32x4;
+        prototype: Bool32x4;
+        extractLane(simd: SIMD.Bool32x4, lane: number): boolean;
+        check(a: SIMD.Bool32x4): SIMD.Bool32x4;
+        splat(n: boolean): SIMD.Bool32x4;
+        replaceLane(simd: SIMD.Bool32x4, lane: number, value: boolean): SIMD.Bool32x4;
+        allTrue(a: SIMD.Bool32x4): boolean;
+        anyTrue(a: SIMD.Bool32x4): boolean;
+        and(a: SIMD.Bool32x4, b: SIMD.Bool32x4): SIMD.Bool32x4;
+        or(a: SIMD.Bool32x4, b: SIMD.Bool32x4): SIMD.Bool32x4;
+        xor(a: SIMD.Bool32x4, b: SIMD.Bool32x4): SIMD.Bool32x4;
+        not(a: SIMD.Bool32x4, b: SIMD.Bool32x4): SIMD.Bool32x4;
+    }
+    interface Bool16x8 {
+        constructor: Bool16x8Constructor;
+        valueOf(): Bool16x8;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Bool16x8Constructor {
+        (s0?: boolean, s1?: boolean, s2?: boolean, s3?: boolean, s4?: boolean, s5?: boolean, s6?: boolean, s7?: boolean): Bool16x8;
+        prototype: Bool16x8;
+        extractLane(simd: SIMD.Bool16x8, lane: number): boolean;
+        check(a: SIMD.Bool16x8): SIMD.Bool16x8;
+        splat(n: boolean): SIMD.Bool16x8;
+        replaceLane(simd: SIMD.Bool16x8, lane: number, value: boolean): SIMD.Bool16x8;
+        allTrue(a: SIMD.Bool16x8): boolean;
+        anyTrue(a: SIMD.Bool16x8): boolean;
+        and(a: SIMD.Bool16x8, b: SIMD.Bool16x8): SIMD.Bool16x8;
+        or(a: SIMD.Bool16x8, b: SIMD.Bool16x8): SIMD.Bool16x8;
+        xor(a: SIMD.Bool16x8, b: SIMD.Bool16x8): SIMD.Bool16x8;
+        not(a: SIMD.Bool16x8, b: SIMD.Bool16x8): SIMD.Bool16x8;
+    }
+    interface Bool8x16 {
+        constructor: Bool8x16Constructor;
+        valueOf(): Bool8x16;
+        toLocaleString(): string;
+        toString(): string;
+    }
+    interface Bool8x16Constructor {
+        (s0?: boolean, s1?: boolean, s2?: boolean, s3?: boolean, s4?: boolean, s5?: boolean, s6?: boolean, s7?: boolean, s8?: boolean, s9?: boolean, s10?: boolean, s11?: boolean, s12?: boolean, s13?: boolean, s14?: boolean, s15?: boolean): Bool8x16;
+        prototype: Bool8x16;
+        extractLane(simd: SIMD.Bool8x16, lane: number): boolean;
+        check(a: SIMD.Bool8x16): SIMD.Bool8x16;
+        splat(n: boolean): SIMD.Bool8x16;
+        replaceLane(simd: SIMD.Bool8x16, lane: number, value: boolean): SIMD.Bool8x16;
+        allTrue(a: SIMD.Bool8x16): boolean;
+        anyTrue(a: SIMD.Bool8x16): boolean;
+        and(a: SIMD.Bool8x16, b: SIMD.Bool8x16): SIMD.Bool8x16;
+        or(a: SIMD.Bool8x16, b: SIMD.Bool8x16): SIMD.Bool8x16;
+        xor(a: SIMD.Bool8x16, b: SIMD.Bool8x16): SIMD.Bool8x16;
+        not(a: SIMD.Bool8x16, b: SIMD.Bool8x16): SIMD.Bool8x16;
+    }
 }
 
 declare module BABYLON {
@@ -494,6 +1050,8 @@ declare module BABYLON {
         id: string;
         uniqueId: number;
         state: string;
+        metadata: any;
+        doNotSerialize: boolean;
         animations: Animation[];
         private _ranges;
         onReady: (node: Node) => void;
@@ -508,6 +1066,14 @@ declare module BABYLON {
         private _parentNode;
         private _children;
         parent: Node;
+        getClassName(): string;
+        /**
+        * An event triggered when the mesh is disposed.
+        * @type {BABYLON.Observable}
+        */
+        onDisposeObservable: Observable<Node>;
+        private _onDisposeObserver;
+        onDispose: () => void;
         /**
          * @constructor
          * @param {string} name - the name and id to be given to this node
@@ -596,11 +1162,11 @@ declare module BABYLON {
         static _POINTERMOVE: number;
         static _POINTERWHEEL: number;
         static _POINTERPICK: number;
-        static POINTERDOWN: number;
-        static POINTERUP: number;
-        static POINTERMOVE: number;
-        static POINTERWHEEL: number;
-        static POINTERPICK: number;
+        static readonly POINTERDOWN: number;
+        static readonly POINTERUP: number;
+        static readonly POINTERMOVE: number;
+        static readonly POINTERWHEEL: number;
+        static readonly POINTERPICK: number;
     }
     class PointerInfoBase {
         type: number;
@@ -625,6 +1191,47 @@ declare module BABYLON {
         constructor(type: number, event: PointerEvent | MouseWheelEvent, pickInfo: PickingInfo);
     }
     /**
+     * This class is used by the onRenderingGroupObservable
+     */
+    class RenderingGroupInfo {
+        /**
+         * The Scene that being rendered
+         */
+        scene: Scene;
+        /**
+         * The camera currently used for the rendering pass
+         */
+        camera: Camera;
+        /**
+         * The ID of the renderingGroup being processed
+         */
+        renderingGroupId: number;
+        /**
+         * The rendering stage, can be either STAGE_PRECLEAR, STAGE_PREOPAQUE, STAGE_PRETRANSPARENT, STAGE_POSTTRANSPARENT
+         */
+        renderStage: number;
+        /**
+         * Stage corresponding to the very first hook in the renderingGroup phase: before the render buffer may be cleared
+         * This stage will be fired no matter what
+         */
+        static STAGE_PRECLEAR: number;
+        /**
+         * Called before opaque object are rendered.
+         * This stage will be fired only if there's 3D Opaque content to render
+         */
+        static STAGE_PREOPAQUE: number;
+        /**
+         * Called after the opaque objects are rendered and before the transparent ones
+         * This stage will be fired only if there's 3D transparent content to render
+         */
+        static STAGE_PRETRANSPARENT: number;
+        /**
+         * Called after the transparent object are rendered, last hook of the renderingGroup phase
+         * This stage will be fired no matter what
+         */
+        static STAGE_POSTTRANSPARENT: number;
+    }
+    /**
      * Represents a scene to be rendered by the engine.
      * @see http://doc.babylonjs.com/page.php?p=21911
      */
@@ -635,12 +1242,12 @@ declare module BABYLON {
         private static _FOGMODE_LINEAR;
         static MinDeltaTime: number;
         static MaxDeltaTime: number;
-        static FOGMODE_NONE: number;
-        static FOGMODE_EXP: number;
-        static FOGMODE_EXP2: number;
-        static FOGMODE_LINEAR: number;
+        static readonly FOGMODE_NONE: number;
+        static readonly FOGMODE_EXP: number;
+        static readonly FOGMODE_EXP2: number;
+        static readonly FOGMODE_LINEAR: number;
         autoClear: boolean;
-        clearColor: any;
+        clearColor: Color4;
         ambientColor: Color3;
         forceWireframe: boolean;
         forcePointsCloud: boolean;
@@ -648,7 +1255,9 @@ declare module BABYLON {
         clipPlane: Plane;
         animationsEnabled: boolean;
         constantlyUpdateMeshUnderPointer: boolean;
+        useRightHandedSystem: boolean;
         hoverCursor: string;
+        metadata: any;
         /**
         * An event triggered when the scene is disposed.
         * @type {BABYLON.Observable}
@@ -729,6 +1338,12 @@ declare module BABYLON {
         * @type {BABYLON.Observable}
         */
         onMeshRemovedObservable: Observable<AbstractMesh>;
+        /**
+         * This Observable will be triggered for each stage of each renderingGroup of each rendered camera.
+         * The RenderinGroupInfo class contains all the information about the context in which the observable is called
+         * If you wish to register an Observer only for a given set of renderingGroup, use the mask with a combination of the renderingGroup index elevated to the power of two (1 for renderingGroup 0, 2 for renderingrOup1, 4 for 2 and 8 for 3)
+         */
+        onRenderingGroupObservable: Observable<RenderingGroupInfo>;
         animations: Animation[];
         pointerDownPredicate: (Mesh: AbstractMesh) => boolean;
         pointerUpPredicate: (Mesh: AbstractMesh) => boolean;
@@ -761,7 +1376,7 @@ declare module BABYLON {
          * Observable event triggered each time an input event is received from the rendering canvas
          */
         onPointerObservable: Observable<PointerInfo>;
-        unTranslatedPointer: Vector2;
+        readonly unTranslatedPointer: Vector2;
         cameraToUseForPointers: Camera;
         private _pointerX;
         private _pointerY;
@@ -815,7 +1430,8 @@ declare module BABYLON {
         private _geometries;
         materials: Material[];
         multiMaterials: MultiMaterial[];
-        defaultMaterial: StandardMaterial;
+        private _defaultMaterial;
+        readonly defaultMaterial: StandardMaterial;
         texturesEnabled: boolean;
         textures: BaseTexture[];
         particlesEnabled: boolean;
@@ -823,6 +1439,7 @@ declare module BABYLON {
         spritesEnabled: boolean;
         spriteManagers: SpriteManager[];
         layers: Layer[];
+        highlightLayers: HighlightLayer[];
         skeletonsEnabled: boolean;
         skeletons: Skeleton[];
         lensFlaresEnabled: boolean;
@@ -872,7 +1489,9 @@ declare module BABYLON {
         _spritesDuration: PerfCounter;
         _activeBones: PerfCounter;
         private _animationRatio;
-        private _animationStartDate;
+        private _animationTimeLast;
+        private _animationTime;
+        animationTimeScale: number;
         _cachedMaterial: Material;
         private _renderId;
         private _executeWhenReadyTimeoutId;
@@ -896,6 +1515,7 @@ declare module BABYLON {
         private _viewMatrix;
         private _projectionMatrix;
         private _frustumPlanes;
+        readonly frustumPlanes: Plane[];
         private _selectionOctree;
         private _pointerOverMesh;
         private _pointerOverSprite;
@@ -904,53 +1524,55 @@ declare module BABYLON {
         private _uniqueIdCounter;
         private _pickedDownMesh;
         private _pickedDownSprite;
+        private _externalData;
+        private _uid;
         /**
          * @constructor
          * @param {BABYLON.Engine} engine - the engine to be used to render this scene.
          */
         constructor(engine: Engine);
-        debugLayer: DebugLayer;
+        readonly debugLayer: DebugLayer;
         workerCollisions: boolean;
-        SelectionOctree: Octree<AbstractMesh>;
+        readonly SelectionOctree: Octree<AbstractMesh>;
         /**
          * The mesh that is currently under the pointer.
          * @return {BABYLON.AbstractMesh} mesh under the pointer/mouse cursor or null if none.
          */
-        meshUnderPointer: AbstractMesh;
+        readonly meshUnderPointer: AbstractMesh;
         /**
          * Current on-screen X position of the pointer
          * @return {number} X position of the pointer
          */
-        pointerX: number;
+        readonly pointerX: number;
         /**
          * Current on-screen Y position of the pointer
          * @return {number} Y position of the pointer
          */
-        pointerY: number;
+        readonly pointerY: number;
         getCachedMaterial(): Material;
         getBoundingBoxRenderer(): BoundingBoxRenderer;
         getOutlineRenderer(): OutlineRenderer;
         getEngine(): Engine;
         getTotalVertices(): number;
-        totalVerticesPerfCounter: PerfCounter;
+        readonly totalVerticesPerfCounter: PerfCounter;
         getActiveIndices(): number;
-        totalActiveIndicesPerfCounter: PerfCounter;
+        readonly totalActiveIndicesPerfCounter: PerfCounter;
         getActiveParticles(): number;
-        activeParticlesPerfCounter: PerfCounter;
+        readonly activeParticlesPerfCounter: PerfCounter;
         getActiveBones(): number;
-        activeBonesPerfCounter: PerfCounter;
+        readonly activeBonesPerfCounter: PerfCounter;
         getLastFrameDuration(): number;
-        lastFramePerfCounter: PerfCounter;
+        readonly lastFramePerfCounter: PerfCounter;
         getEvaluateActiveMeshesDuration(): number;
-        evaluateActiveMeshesDurationPerfCounter: PerfCounter;
+        readonly evaluateActiveMeshesDurationPerfCounter: PerfCounter;
         getActiveMeshes(): SmartArray<Mesh>;
         getRenderTargetsDuration(): number;
         getRenderDuration(): number;
-        renderDurationPerfCounter: PerfCounter;
+        readonly renderDurationPerfCounter: PerfCounter;
         getParticlesDuration(): number;
-        particlesDurationPerfCounter: PerfCounter;
+        readonly particlesDurationPerfCounter: PerfCounter;
         getSpritesDuration(): number;
-        spriteDuractionPerfCounter: PerfCounter;
+        readonly spriteDuractionPerfCounter: PerfCounter;
         getAnimationRatio(): number;
         getRenderId(): number;
         incrementRenderId(): void;
@@ -994,13 +1616,14 @@ declare module BABYLON {
         beginAnimation(target: any, from: number, to: number, loop?: boolean, speedRatio?: number, onAnimationEnd?: () => void, animatable?: Animatable): Animatable;
         beginDirectAnimation(target: any, animations: Animation[], from: number, to: number, loop?: boolean, speedRatio?: number, onAnimationEnd?: () => void): Animatable;
         getAnimatableByTarget(target: any): Animatable;
-        Animatables: Animatable[];
+        readonly Animatables: Animatable[];
         /**
          * Will stop the animation of the given target
          * @param target - the target
+         * @param animationName - the name of the animation to stop (all animations will be stopped is empty)
          * @see beginAnimation
          */
-        stopAnimation(target: any): void;
+        stopAnimation(target: any, animationName?: string): void;
         private _animate();
         getViewMatrix(): Matrix;
         getProjectionMatrix(): Matrix;
@@ -1144,6 +1767,38 @@ declare module BABYLON {
         getSkeletonById(id: string): Skeleton;
         getSkeletonByName(name: string): Skeleton;
         isActiveMesh(mesh: Mesh): boolean;
+        /**
+         * Return a unique id as a string which can serve as an identifier for the scene
+         */
+        readonly uid: string;
+        /**
+         * Add an externaly attached data from its key.
+         * This method call will fail and return false, if such key already exists.
+         * If you don't care and just want to get the data no matter what, use the more convenient getOrAddExternalDataWithFactory() method.
+         * @param key the unique key that identifies the data
+         * @param data the data object to associate to the key for this Engine instance
+         * @return true if no such key were already present and the data was added successfully, false otherwise
+         */
+        addExternalData<T>(key: string, data: T): boolean;
+        /**
+         * Get an externaly attached data from its key
+         * @param key the unique key that identifies the data
+         * @return the associated data, if present (can be null), or undefined if not present
+         */
+        getExternalData<T>(key: string): T;
+        /**
+         * Get an externaly attached data from its key, create it using a factory if it's not already present
+         * @param key the unique key that identifies the data
+         * @param factory the factory that will be called to create the instance if and only if it doesn't exists
+         * @return the associated data, can be null if the factory returned null.
+         */
+        getOrAddExternalDataWithFactory<T>(key: string, factory: (k: string) => T): T;
+        /**
+         * Remove an externaly attached data from the Engine instance
+         * @param key the unique key that identifies the data
+         * @return true if the data was successfully removed, false if it doesn't exist
+         */
+        removeExternalData(key: any): boolean;
         private _evaluateSubMesh(subMesh, mesh);
         _isInIntermediateRendering(): boolean;
         private _evaluateActiveMeshes();
@@ -1174,10 +1829,13 @@ declare module BABYLON {
         createPickingRay(x: number, y: number, world: Matrix, camera: Camera, cameraViewSpace?: boolean): Ray;
         createPickingRayInCameraSpace(x: number, y: number, camera: Camera): Ray;
         private _internalPick(rayFunction, predicate, fastCheck?);
+        private _internalMultiPick(rayFunction, predicate);
         private _internalPickSprites(ray, predicate?, fastCheck?, camera?);
         pick(x: number, y: number, predicate?: (mesh: AbstractMesh) => boolean, fastCheck?: boolean, camera?: Camera): PickingInfo;
         pickSprite(x: number, y: number, predicate?: (sprite: Sprite) => boolean, fastCheck?: boolean, camera?: Camera): PickingInfo;
         pickWithRay(ray: Ray, predicate: (mesh: Mesh) => boolean, fastCheck?: boolean): PickingInfo;
+        multiPick(x: number, y: number, predicate?: (mesh: AbstractMesh) => boolean, camera?: Camera): PickingInfo[];
+        multiPickWithRay(ray: Ray, predicate: (mesh: Mesh) => boolean): PickingInfo[];
         setPointerOverMesh(mesh: AbstractMesh): void;
         getPointerOverMesh(): AbstractMesh;
         setPointerOverSprite(sprite: Sprite): void;
@@ -1204,12 +1862,31 @@ declare module BABYLON {
          */
         createCompoundImpostor(parts: any, options: PhysicsImpostorParameters): any;
         deleteCompoundImpostor(compound: any): void;
-        createDefaultCameraOrLight(): void;
+        createDefaultCameraOrLight(createArcRotateCamera?: boolean): void;
         private _getByTags(list, tagsQuery, forEach?);
         getMeshesByTags(tagsQuery: string, forEach?: (mesh: AbstractMesh) => void): Mesh[];
         getCamerasByTags(tagsQuery: string, forEach?: (camera: Camera) => void): Camera[];
         getLightsByTags(tagsQuery: string, forEach?: (light: Light) => void): Light[];
         getMaterialByTags(tagsQuery: string, forEach?: (material: Material) => void): Material[];
+        /**
+         * Overrides the default sort function applied in the renderging group to prepare the meshes.
+         * This allowed control for front to back rendering or reversly depending of the special needs.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param opaqueSortCompareFn The opaque queue comparison function use to sort.
+         * @param alphaTestSortCompareFn The alpha test queue comparison function use to sort.
+         * @param transparentSortCompareFn The transparent queue comparison function use to sort.
+         */
+        setRenderingOrder(renderingGroupId: number, opaqueSortCompareFn?: (a: SubMesh, b: SubMesh) => number, alphaTestSortCompareFn?: (a: SubMesh, b: SubMesh) => number, transparentSortCompareFn?: (a: SubMesh, b: SubMesh) => number): void;
+        /**
+         * Specifies whether or not the stencil and depth buffer are cleared between two rendering groups.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param autoClearDepthStencil Automatically clears depth and stencil between groups if true.
+         * @param depth Automatically clears depth between groups if true and autoClear is true.
+         * @param stencil Automatically clears stencil between groups if true and autoClear is true.
+         */
+        setRenderingAutoClearDepthStencil(renderingGroupId: number, autoClearDepthStencil: boolean, depth?: boolean, stencil?: boolean): void;
     }
 }
 
@@ -1304,25 +1981,26 @@ declare module BABYLON {
         private static _OnKeyDownTrigger;
         private static _OnKeyUpTrigger;
         private static _OnPickOutTrigger;
-        static NothingTrigger: number;
-        static OnPickTrigger: number;
-        static OnLeftPickTrigger: number;
-        static OnRightPickTrigger: number;
-        static OnCenterPickTrigger: number;
-        static OnPickDownTrigger: number;
-        static OnPickUpTrigger: number;
-        static OnPickOutTrigger: number;
-        static OnLongPressTrigger: number;
-        static OnPointerOverTrigger: number;
-        static OnPointerOutTrigger: number;
-        static OnEveryFrameTrigger: number;
-        static OnIntersectionEnterTrigger: number;
-        static OnIntersectionExitTrigger: number;
-        static OnKeyDownTrigger: number;
-        static OnKeyUpTrigger: number;
+        static readonly NothingTrigger: number;
+        static readonly OnPickTrigger: number;
+        static readonly OnLeftPickTrigger: number;
+        static readonly OnRightPickTrigger: number;
+        static readonly OnCenterPickTrigger: number;
+        static readonly OnPickDownTrigger: number;
+        static readonly OnPickUpTrigger: number;
+        static readonly OnPickOutTrigger: number;
+        static readonly OnLongPressTrigger: number;
+        static readonly OnPointerOverTrigger: number;
+        static readonly OnPointerOutTrigger: number;
+        static readonly OnEveryFrameTrigger: number;
+        static readonly OnIntersectionEnterTrigger: number;
+        static readonly OnIntersectionExitTrigger: number;
+        static readonly OnKeyDownTrigger: number;
+        static readonly OnKeyUpTrigger: number;
         static DragMovementThreshold: number;
         static LongPressDelay: number;
         actions: Action[];
+        hoverCursor: string;
         private _scene;
         constructor(scene: Scene);
         dispose(): void;
@@ -1343,12 +2021,12 @@ declare module BABYLON {
          * Does this action manager has pointer triggers
          * @return {boolean} whether or not it has pointer triggers
          */
-        hasPointerTriggers: boolean;
+        readonly hasPointerTriggers: boolean;
         /**
          * Does this action manager has pick triggers
          * @return {boolean} whether or not it has pick triggers
          */
-        hasPickTriggers: boolean;
+        readonly hasPickTriggers: boolean;
         /**
          * Registers an action to this action manager
          * @param {BABYLON.Action} action - the action to be registered
@@ -1389,10 +2067,10 @@ declare module BABYLON {
         private static _IsDifferent;
         private static _IsGreater;
         private static _IsLesser;
-        static IsEqual: number;
-        static IsDifferent: number;
-        static IsGreater: number;
-        static IsLesser: number;
+        static readonly IsEqual: number;
+        static readonly IsDifferent: number;
+        static readonly IsGreater: number;
+        static readonly IsLesser: number;
         _actionManager: ActionManager;
         private _target;
         private _effectiveTarget;
@@ -1534,6 +2212,188 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+    class Analyser {
+        SMOOTHING: number;
+        FFT_SIZE: number;
+        BARGRAPHAMPLITUDE: number;
+        DEBUGCANVASPOS: {
+            x: number;
+            y: number;
+        };
+        DEBUGCANVASSIZE: {
+            width: number;
+            height: number;
+        };
+        private _byteFreqs;
+        private _byteTime;
+        private _floatFreqs;
+        private _webAudioAnalyser;
+        private _debugCanvas;
+        private _debugCanvasContext;
+        private _scene;
+        private _registerFunc;
+        private _audioEngine;
+        constructor(scene: Scene);
+        getFrequencyBinCount(): number;
+        getByteFrequencyData(): Uint8Array;
+        getByteTimeDomainData(): Uint8Array;
+        getFloatFrequencyData(): Uint8Array;
+        drawDebugCanvas(): void;
+        stopDebugCanvas(): void;
+        connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class AudioEngine {
+        private _audioContext;
+        private _audioContextInitialized;
+        canUseWebAudio: boolean;
+        masterGain: GainNode;
+        private _connectedAnalyser;
+        WarnedWebAudioUnsupported: boolean;
+        unlocked: boolean;
+        onAudioUnlocked: () => any;
+        isMP3supported: boolean;
+        isOGGsupported: boolean;
+        readonly audioContext: AudioContext;
+        constructor();
+        private _unlockiOSaudio();
+        private _initializeAudioContext();
+        dispose(): void;
+        getGlobalVolume(): number;
+        setGlobalVolume(newVolume: number): void;
+        connectToAnalyser(analyser: Analyser): void;
+    }
+}
+
+declare module BABYLON {
+    class Sound {
+        name: string;
+        autoplay: boolean;
+        loop: boolean;
+        useCustomAttenuation: boolean;
+        soundTrackId: number;
+        spatialSound: boolean;
+        refDistance: number;
+        rolloffFactor: number;
+        maxDistance: number;
+        distanceModel: string;
+        private _panningModel;
+        onended: () => any;
+        private _playbackRate;
+        private _streaming;
+        private _startTime;
+        private _startOffset;
+        private _position;
+        private _localDirection;
+        private _volume;
+        private _isLoaded;
+        private _isReadyToPlay;
+        isPlaying: boolean;
+        isPaused: boolean;
+        private _isDirectional;
+        private _readyToPlayCallback;
+        private _audioBuffer;
+        private _soundSource;
+        private _streamingSource;
+        private _soundPanner;
+        private _soundGain;
+        private _inputAudioNode;
+        private _ouputAudioNode;
+        private _coneInnerAngle;
+        private _coneOuterAngle;
+        private _coneOuterGain;
+        private _scene;
+        private _connectedMesh;
+        private _customAttenuationFunction;
+        private _registerFunc;
+        private _isOutputConnected;
+        private _htmlAudioElement;
+        private _urlType;
+        /**
+        * Create a sound and attach it to a scene
+        * @param name Name of your sound
+        * @param urlOrArrayBuffer Url to the sound to load async or ArrayBuffer
+        * @param readyToPlayCallback Provide a callback function if you'd like to load your code once the sound is ready to be played
+        * @param options Objects to provide with the current available options: autoplay, loop, volume, spatialSound, maxDistance, rolloffFactor, refDistance, distanceModel, panningModel, streaming
+        */
+        constructor(name: string, urlOrArrayBuffer: any, scene: Scene, readyToPlayCallback?: () => void, options?: any);
+        dispose(): void;
+        isReady(): boolean;
+        private _soundLoaded(audioData);
+        setAudioBuffer(audioBuffer: AudioBuffer): void;
+        updateOptions(options: any): void;
+        private _createSpatialParameters();
+        private _updateSpatialParameters();
+        switchPanningModelToHRTF(): void;
+        switchPanningModelToEqualPower(): void;
+        private _switchPanningModel();
+        connectToSoundTrackAudioNode(soundTrackAudioNode: AudioNode): void;
+        /**
+        * Transform this sound into a directional source
+        * @param coneInnerAngle Size of the inner cone in degree
+        * @param coneOuterAngle Size of the outer cone in degree
+        * @param coneOuterGain Volume of the sound outside the outer cone (between 0.0 and 1.0)
+        */
+        setDirectionalCone(coneInnerAngle: number, coneOuterAngle: number, coneOuterGain: number): void;
+        setPosition(newPosition: Vector3): void;
+        setLocalDirectionToMesh(newLocalDirection: Vector3): void;
+        private _updateDirection();
+        updateDistanceFromListener(): void;
+        setAttenuationFunction(callback: (currentVolume: number, currentDistance: number, maxDistance: number, refDistance: number, rolloffFactor: number) => number): void;
+        /**
+        * Play the sound
+        * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
+        * @param offset (optional) Start the sound setting it at a specific time
+        */
+        play(time?: number, offset?: number): void;
+        private _onended();
+        /**
+        * Stop the sound
+        * @param time (optional) Stop the sound after X seconds. Stop immediately (0) by default.
+        */
+        stop(time?: number): void;
+        pause(): void;
+        setVolume(newVolume: number, time?: number): void;
+        setPlaybackRate(newPlaybackRate: number): void;
+        getVolume(): number;
+        attachToMesh(meshToConnectTo: AbstractMesh): void;
+        detachFromMesh(): void;
+        private _onRegisterAfterWorldMatrixUpdate(connectedMesh);
+        clone(): Sound;
+        getAudioBuffer(): AudioBuffer;
+        serialize(): any;
+        static Parse(parsedSound: any, scene: Scene, rootUrl: string, sourceSound?: Sound): Sound;
+    }
+}
+
+declare module BABYLON {
+    class SoundTrack {
+        private _outputAudioNode;
+        private _inputAudioNode;
+        private _trackConvolver;
+        private _scene;
+        id: number;
+        soundCollection: Array<Sound>;
+        private _isMainTrack;
+        private _connectedAnalyser;
+        private _options;
+        private _isInitialized;
+        constructor(scene: Scene, options?: any);
+        private _initializeSoundTrackAudioGraph();
+        dispose(): void;
+        AddSound(sound: Sound): void;
+        RemoveSound(sound: Sound): void;
+        setVolume(newVolume: number): void;
+        switchPanningModelToHRTF(): void;
+        switchPanningModelToEqualPower(): void;
+        connectToAnalyser(analyser: Analyser): void;
+    }
+}
+
+declare module BABYLON {
     class Animatable {
         target: any;
         fromFrame: number;
@@ -1557,7 +2417,7 @@ declare module BABYLON {
         goToFrame(frame: number): void;
         pause(): void;
         restart(): void;
-        stop(): void;
+        stop(animationName?: string): void;
         _animate(delay: number): boolean;
     }
 }
@@ -1673,16 +2533,16 @@ declare module BABYLON {
         private static _ANIMATIONLOOPMODE_RELATIVE;
         private static _ANIMATIONLOOPMODE_CYCLE;
         private static _ANIMATIONLOOPMODE_CONSTANT;
-        static ANIMATIONTYPE_FLOAT: number;
-        static ANIMATIONTYPE_VECTOR3: number;
-        static ANIMATIONTYPE_VECTOR2: number;
-        static ANIMATIONTYPE_SIZE: number;
-        static ANIMATIONTYPE_QUATERNION: number;
-        static ANIMATIONTYPE_MATRIX: number;
-        static ANIMATIONTYPE_COLOR3: number;
-        static ANIMATIONLOOPMODE_RELATIVE: number;
-        static ANIMATIONLOOPMODE_CYCLE: number;
-        static ANIMATIONLOOPMODE_CONSTANT: number;
+        static readonly ANIMATIONTYPE_FLOAT: number;
+        static readonly ANIMATIONTYPE_VECTOR3: number;
+        static readonly ANIMATIONTYPE_VECTOR2: number;
+        static readonly ANIMATIONTYPE_SIZE: number;
+        static readonly ANIMATIONTYPE_QUATERNION: number;
+        static readonly ANIMATIONTYPE_MATRIX: number;
+        static readonly ANIMATIONTYPE_COLOR3: number;
+        static readonly ANIMATIONLOOPMODE_RELATIVE: number;
+        static readonly ANIMATIONLOOPMODE_CYCLE: number;
+        static readonly ANIMATIONLOOPMODE_CONSTANT: number;
         static Parse(parsedAnimation: any): Animation;
         static AppendSerializedAnimations(source: IAnimatable, destination: any): any;
     }
@@ -1696,9 +2556,9 @@ declare module BABYLON {
         private static _EASINGMODE_EASEIN;
         private static _EASINGMODE_EASEOUT;
         private static _EASINGMODE_EASEINOUT;
-        static EASINGMODE_EASEIN: number;
-        static EASINGMODE_EASEOUT: number;
-        static EASINGMODE_EASEINOUT: number;
+        static readonly EASINGMODE_EASEIN: number;
+        static readonly EASINGMODE_EASEOUT: number;
+        static readonly EASINGMODE_EASEINOUT: number;
         private _easingMode;
         setEasingMode(easingMode: number): void;
         getEasingMode(): number;
@@ -1761,184 +2621,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class Analyser {
-        SMOOTHING: number;
-        FFT_SIZE: number;
-        BARGRAPHAMPLITUDE: number;
-        DEBUGCANVASPOS: {
-            x: number;
-            y: number;
-        };
-        DEBUGCANVASSIZE: {
-            width: number;
-            height: number;
-        };
-        private _byteFreqs;
-        private _byteTime;
-        private _floatFreqs;
-        private _webAudioAnalyser;
-        private _debugCanvas;
-        private _debugCanvasContext;
-        private _scene;
-        private _registerFunc;
-        private _audioEngine;
-        constructor(scene: Scene);
-        getFrequencyBinCount(): number;
-        getByteFrequencyData(): Uint8Array;
-        getByteTimeDomainData(): Uint8Array;
-        getFloatFrequencyData(): Uint8Array;
-        drawDebugCanvas(): void;
-        stopDebugCanvas(): void;
-        connectAudioNodes(inputAudioNode: AudioNode, outputAudioNode: AudioNode): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-    class AudioEngine {
-        private _audioContext;
-        private _audioContextInitialized;
-        canUseWebAudio: boolean;
-        masterGain: GainNode;
-        private _connectedAnalyser;
-        WarnedWebAudioUnsupported: boolean;
-        unlocked: boolean;
-        onAudioUnlocked: () => any;
-        audioContext: AudioContext;
-        constructor();
-        private _unlockiOSaudio();
-        private _initializeAudioContext();
-        dispose(): void;
-        getGlobalVolume(): number;
-        setGlobalVolume(newVolume: number): void;
-        connectToAnalyser(analyser: Analyser): void;
-    }
-}
-
-declare module BABYLON {
-    class Sound {
-        name: string;
-        autoplay: boolean;
-        loop: boolean;
-        useCustomAttenuation: boolean;
-        soundTrackId: number;
-        spatialSound: boolean;
-        refDistance: number;
-        rolloffFactor: number;
-        maxDistance: number;
-        distanceModel: string;
-        private _panningModel;
-        onended: () => any;
-        private _playbackRate;
-        private _streaming;
-        private _startTime;
-        private _startOffset;
-        private _position;
-        private _localDirection;
-        private _volume;
-        private _isLoaded;
-        private _isReadyToPlay;
-        isPlaying: boolean;
-        isPaused: boolean;
-        private _isDirectional;
-        private _readyToPlayCallback;
-        private _audioBuffer;
-        private _soundSource;
-        private _streamingSource;
-        private _soundPanner;
-        private _soundGain;
-        private _inputAudioNode;
-        private _ouputAudioNode;
-        private _coneInnerAngle;
-        private _coneOuterAngle;
-        private _coneOuterGain;
-        private _scene;
-        private _connectedMesh;
-        private _customAttenuationFunction;
-        private _registerFunc;
-        private _isOutputConnected;
-        private _htmlAudioElement;
-        /**
-        * Create a sound and attach it to a scene
-        * @param name Name of your sound
-        * @param urlOrArrayBuffer Url to the sound to load async or ArrayBuffer
-        * @param readyToPlayCallback Provide a callback function if you'd like to load your code once the sound is ready to be played
-        * @param options Objects to provide with the current available options: autoplay, loop, volume, spatialSound, maxDistance, rolloffFactor, refDistance, distanceModel, panningModel, streaming
-        */
-        constructor(name: string, urlOrArrayBuffer: any, scene: Scene, readyToPlayCallback?: () => void, options?: any);
-        dispose(): void;
-        private _soundLoaded(audioData);
-        setAudioBuffer(audioBuffer: AudioBuffer): void;
-        updateOptions(options: any): void;
-        private _createSpatialParameters();
-        private _updateSpatialParameters();
-        switchPanningModelToHRTF(): void;
-        switchPanningModelToEqualPower(): void;
-        private _switchPanningModel();
-        connectToSoundTrackAudioNode(soundTrackAudioNode: AudioNode): void;
-        /**
-        * Transform this sound into a directional source
-        * @param coneInnerAngle Size of the inner cone in degree
-        * @param coneOuterAngle Size of the outer cone in degree
-        * @param coneOuterGain Volume of the sound outside the outer cone (between 0.0 and 1.0)
-        */
-        setDirectionalCone(coneInnerAngle: number, coneOuterAngle: number, coneOuterGain: number): void;
-        setPosition(newPosition: Vector3): void;
-        setLocalDirectionToMesh(newLocalDirection: Vector3): void;
-        private _updateDirection();
-        updateDistanceFromListener(): void;
-        setAttenuationFunction(callback: (currentVolume: number, currentDistance: number, maxDistance: number, refDistance: number, rolloffFactor: number) => number): void;
-        /**
-        * Play the sound
-        * @param time (optional) Start the sound after X seconds. Start immediately (0) by default.
-        * @param offset (optional) Start the sound setting it at a specific time
-        */
-        play(time?: number, offset?: number): void;
-        private _onended();
-        /**
-        * Stop the sound
-        * @param time (optional) Stop the sound after X seconds. Stop immediately (0) by default.
-        */
-        stop(time?: number): void;
-        pause(): void;
-        setVolume(newVolume: number, time?: number): void;
-        setPlaybackRate(newPlaybackRate: number): void;
-        getVolume(): number;
-        attachToMesh(meshToConnectTo: AbstractMesh): void;
-        detachFromMesh(): void;
-        private _onRegisterAfterWorldMatrixUpdate(connectedMesh);
-        clone(): Sound;
-        getAudioBuffer(): AudioBuffer;
-        serialize(): any;
-        static Parse(parsedSound: any, scene: Scene, rootUrl: string, sourceSound?: Sound): Sound;
-    }
-}
-
-declare module BABYLON {
-    class SoundTrack {
-        private _outputAudioNode;
-        private _inputAudioNode;
-        private _trackConvolver;
-        private _scene;
-        id: number;
-        soundCollection: Array<Sound>;
-        private _isMainTrack;
-        private _connectedAnalyser;
-        private _options;
-        private _isInitialized;
-        constructor(scene: Scene, options?: any);
-        private _initializeSoundTrackAudioGraph();
-        dispose(): void;
-        AddSound(sound: Sound): void;
-        RemoveSound(sound: Sound): void;
-        setVolume(newVolume: number): void;
-        switchPanningModelToHRTF(): void;
-        switchPanningModelToEqualPower(): void;
-        connectToAnalyser(analyser: Analyser): void;
-    }
-}
-
-declare module BABYLON {
     class Bone extends Node {
         name: string;
         children: Bone[];
@@ -1952,6 +2634,10 @@ declare module BABYLON {
         private _absoluteTransform;
         private _invertedAbsoluteTransform;
         private _parent;
+        private _scaleMatrix;
+        private _scaleVector;
+        private _negateScaleChildren;
+        private _scalingDeterminant;
         constructor(name: string, skeleton: Skeleton, parentBone: Bone, matrix: Matrix, restPose?: Matrix);
         getParent(): Bone;
         getLocalMatrix(): Matrix;
@@ -1961,10 +2647,114 @@ declare module BABYLON {
         getWorldMatrix(): Matrix;
         getInvertedAbsoluteTransform(): Matrix;
         getAbsoluteTransform(): Matrix;
-        updateMatrix(matrix: Matrix): void;
+        updateMatrix(matrix: Matrix, updateDifferenceMatrix?: boolean): void;
         _updateDifferenceMatrix(rootMatrix?: Matrix): void;
         markAsDirty(): void;
         copyAnimationRange(source: Bone, rangeName: string, frameOffset: number, rescaleAsRequired?: boolean, skelDimensionsRatio?: Vector3): boolean;
+        translate(vec: Vector3, space?: Space, mesh?: AbstractMesh): void;
+        setPosition(position: Vector3, space?: Space, mesh?: AbstractMesh): void;
+        setAbsolutePosition(position: Vector3, mesh?: AbstractMesh): void;
+        setScale(x: number, y: number, z: number, scaleChildren?: boolean): void;
+        scale(x: number, y: number, z: number, scaleChildren?: boolean): void;
+        setYawPitchRoll(yaw: number, pitch: number, roll: number, space?: Space, mesh?: AbstractMesh): void;
+        rotate(axis: Vector3, amount: number, space?: Space, mesh?: AbstractMesh): void;
+        setAxisAngle(axis: Vector3, angle: number, space?: Space, mesh?: AbstractMesh): void;
+        setRotation(rotation: Vector3, space?: Space, mesh?: AbstractMesh): void;
+        setRotationQuaternion(quat: Quaternion, space?: Space, mesh?: AbstractMesh): void;
+        setRotationMatrix(rotMat: Matrix, space?: Space, mesh?: AbstractMesh): void;
+        private _rotateWithMatrix(rmat, space?, mesh?);
+        private _getNegativeRotationToRef(rotMatInv, space?, mesh?);
+        getScale(): Vector3;
+        getScaleToRef(result: Vector3): void;
+        getPosition(space?: Space, mesh?: AbstractMesh): Vector3;
+        getPositionToRef(space: Space, mesh: AbstractMesh, result: Vector3): void;
+        getAbsolutePosition(mesh?: AbstractMesh): Vector3;
+        getAbsolutePositionToRef(mesh: AbstractMesh, result: Vector3): void;
+        computeAbsoluteTransforms(): void;
+        private _syncScaleVector;
+        getDirection(localAxis: Vector3, mesh?: AbstractMesh): Vector3;
+        getDirectionToRef(localAxis: Vector3, mesh: AbstractMesh, result: Vector3): void;
+        getRotation(space?: Space, mesh?: AbstractMesh): Vector3;
+        getRotationToRef(space: Space, mesh: AbstractMesh, result: Vector3): void;
+        getRotationQuaternion(space?: Space, mesh?: AbstractMesh): Quaternion;
+        getRotationQuaternionToRef(space: Space, mesh: AbstractMesh, result: Quaternion): void;
+        getRotationMatrix(space: Space, mesh: AbstractMesh): Matrix;
+        getRotationMatrixToRef(space: Space, mesh: AbstractMesh, result: Matrix): void;
+        getAbsolutePositionFromLocal(position: Vector3, mesh?: AbstractMesh): Vector3;
+        getAbsolutePositionFromLocalToRef(position: Vector3, mesh: AbstractMesh, result: Vector3): void;
+        getLocalPositionFromAbsolute(position: Vector3, mesh?: AbstractMesh): Vector3;
+        getLocalPositionFromAbsoluteToRef(position: Vector3, mesh: AbstractMesh, result: Vector3): void;
+    }
+}
+
+declare module BABYLON {
+    class BoneIKController {
+        targetMesh: AbstractMesh;
+        poleTargetMesh: AbstractMesh;
+        poleTargetBone: Bone;
+        targetPosition: Vector3;
+        poleTargetPosition: Vector3;
+        poleTargetLocalOffset: Vector3;
+        poleAngle: number;
+        mesh: AbstractMesh;
+        slerpAmount: number;
+        private _bone1Quat;
+        private _bone1Mat;
+        private _bone2Ang;
+        private _bone1;
+        private _bone2;
+        private _bone1Length;
+        private _bone2Length;
+        private _maxAngle;
+        private _maxReach;
+        private _tmpVec1;
+        private _tmpVec2;
+        private _tmpVec3;
+        private _tmpVec4;
+        private _tmpVec5;
+        private _tmpMat1;
+        private _tmpMat2;
+        private _tmpQuat1;
+        private _rightHandedSystem;
+        private _bendAxis;
+        private _slerping;
+        maxAngle: number;
+        constructor(mesh: AbstractMesh, bone: Bone, options?: {
+            targetMesh?: AbstractMesh;
+            poleTargetMesh?: AbstractMesh;
+            poleTargetBone?: Bone;
+            poleTargetLocalOffset?: Vector3;
+            poleAngle?: number;
+            bendAxis?: Vector3;
+            maxAngle?: number;
+            slerpAmount?: number;
+        });
+        private _setMaxAngle(ang);
+        update(): void;
+    }
+}
+
+declare module BABYLON {
+    class BoneLookController {
+        target: Vector3;
+        mesh: AbstractMesh;
+        bone: Bone;
+        upAxis: Vector3;
+        adjustYaw: number;
+        adjustPitch: number;
+        adjustRoll: number;
+        private _tmpVec1;
+        private _tmpVec2;
+        private _tmpVec3;
+        private _tmpVec4;
+        private _tmpMat1;
+        private _tmpMat2;
+        constructor(mesh: AbstractMesh, bone: Bone, target: Vector3, options?: {
+            adjustYaw?: number;
+            adjustPitch?: number;
+            adjustRoll?: number;
+        });
+        update(): void;
     }
 }
 
@@ -1982,6 +2772,7 @@ declare module BABYLON {
         private _animatables;
         private _identity;
         private _ranges;
+        private _lastAbsoluteTransformsUpdateId;
         constructor(name: string, id: string, scene: Scene);
         getTransformMatrices(mesh: AbstractMesh): Float32Array;
         getScene(): Scene;
@@ -2020,6 +2811,8 @@ declare module BABYLON {
         dispose(): void;
         serialize(): any;
         static Parse(parsedSkeleton: any, scene: Scene): Skeleton;
+        computeAbsoluteTransforms(forceUpdate?: boolean): void;
+        getPoseMatrix(): Matrix;
     }
 }
 
@@ -2071,6 +2864,7 @@ declare module BABYLON {
         private _previousBeta;
         private _previousRadius;
         private _collisionTriggered;
+        private _targetBoundingCenter;
         constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene);
         _initCache(): void;
         _updateCache(ignoreParentClass?: boolean): void;
@@ -2082,7 +2876,7 @@ declare module BABYLON {
         private _checkLimits();
         rebuildAnglesAndRadius(): void;
         setPosition(position: Vector3): void;
-        setTarget(target: Vector3): void;
+        setTarget(target: Vector3, toBoundingCenter?: boolean): void;
         _getViewMatrix(): Matrix;
         private _onCollisionPositionChange;
         zoomOn(meshes?: AbstractMesh[], doNotUpdateMaxZ?: boolean): void;
@@ -2098,7 +2892,7 @@ declare module BABYLON {
          */
         _updateRigCameras(): void;
         dispose(): void;
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
@@ -2126,16 +2920,18 @@ declare module BABYLON {
         private static _RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED;
         private static _RIG_MODE_STEREOSCOPIC_OVERUNDER;
         private static _RIG_MODE_VR;
-        static PERSPECTIVE_CAMERA: number;
-        static ORTHOGRAPHIC_CAMERA: number;
-        static FOVMODE_VERTICAL_FIXED: number;
-        static FOVMODE_HORIZONTAL_FIXED: number;
-        static RIG_MODE_NONE: number;
-        static RIG_MODE_STEREOSCOPIC_ANAGLYPH: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL: number;
-        static RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED: number;
-        static RIG_MODE_STEREOSCOPIC_OVERUNDER: number;
-        static RIG_MODE_VR: number;
+        private static _RIG_MODE_WEBVR;
+        static readonly PERSPECTIVE_CAMERA: number;
+        static readonly ORTHOGRAPHIC_CAMERA: number;
+        static readonly FOVMODE_VERTICAL_FIXED: number;
+        static readonly FOVMODE_HORIZONTAL_FIXED: number;
+        static readonly RIG_MODE_NONE: number;
+        static readonly RIG_MODE_STEREOSCOPIC_ANAGLYPH: number;
+        static readonly RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_PARALLEL: number;
+        static readonly RIG_MODE_STEREOSCOPIC_SIDEBYSIDE_CROSSEYED: number;
+        static readonly RIG_MODE_STEREOSCOPIC_OVERUNDER: number;
+        static readonly RIG_MODE_VR: number;
+        static readonly RIG_MODE_WEBVR: number;
         static ForceAttachControlToAlwaysPreventDefault: boolean;
         position: Vector3;
         upVector: Vector3;
@@ -2160,19 +2956,22 @@ declare module BABYLON {
         _rigPostProcess: PostProcess;
         private _computedViewMatrix;
         _projectionMatrix: Matrix;
+        private _doNotComputeProjectionMatrix;
         private _worldMatrix;
         _postProcesses: PostProcess[];
         private _transformMatrix;
+        private _webvrViewMatrix;
         _activeMeshes: SmartArray<Mesh>;
         private _globalPosition;
         private _frustumPlanes;
         private _refreshFrustumPlanes;
         constructor(name: string, position: Vector3, scene: Scene);
+        getClassName(): string;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
         toString(fullDetails?: boolean): string;
-        globalPosition: Vector3;
+        readonly globalPosition: Vector3;
         getActiveMeshes(): SmartArray<Mesh>;
         isActiveMesh(mesh: Mesh): boolean;
         _initCache(): void;
@@ -2192,6 +2991,8 @@ declare module BABYLON {
         _getViewMatrix(): Matrix;
         getViewMatrix(force?: boolean): Matrix;
         _computeViewMatrix(force?: boolean): Matrix;
+        freezeProjectionMatrix(projection?: Matrix): void;
+        unfreezeProjectionMatrix(): void;
         getProjectionMatrix(force?: boolean): Matrix;
         getTranformationMatrix(): Matrix;
         private updateFrustumPlanes();
@@ -2200,6 +3001,8 @@ declare module BABYLON {
         dispose(): void;
         setCameraRigMode(mode: number, rigParams: any): void;
         private _getVRProjectionMatrix();
+        private _getWebVRProjectionMatrix();
+        private _getWebVRViewMatrix();
         setCameraRigParameter(name: string, value: any): void;
         /**
          * needs to be overridden by children so sub has required properties to be copied
@@ -2211,8 +3014,9 @@ declare module BABYLON {
         _updateRigCameras(): void;
         _setupInputs(): void;
         serialize(): any;
-        getTypeName(): string;
         clone(name: string): Camera;
+        getDirection(localAxis: Vector3): Vector3;
+        getDirectionToRef(localAxis: Vector3, result: Vector3): void;
         static GetConstructorFromName(type: string, name: string, scene: Scene, interaxial_distance?: number, isStereoscopicSideBySide?: boolean): () => Camera;
         static Parse(parsedCamera: any, scene: Scene): Camera;
     }
@@ -2258,9 +3062,9 @@ declare module BABYLON {
         private _initialQuaternion;
         private _quaternionCache;
         constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
         _checkInputs(): void;
-        resetToCurrentRotation(axis?: BABYLON.Axis): void;
+        resetToCurrentRotation(axis?: Axis): void;
     }
 }
 
@@ -2271,12 +3075,12 @@ declare module BABYLON {
         heightOffset: number;
         cameraAcceleration: number;
         maxCameraSpeed: number;
-        target: AbstractMesh;
-        constructor(name: string, position: Vector3, scene: Scene, target?: AbstractMesh);
+        lockedTarget: AbstractMesh;
+        constructor(name: string, position: Vector3, scene: Scene, lockedTarget?: AbstractMesh);
         private getRadians(degrees);
         private follow(cameraTarget);
         _checkInputs(): void;
-        getTypeName(): string;
+        getClassName(): string;
     }
     class ArcFollowCamera extends TargetCamera {
         alpha: number;
@@ -2287,7 +3091,7 @@ declare module BABYLON {
         constructor(name: string, alpha: number, beta: number, radius: number, target: AbstractMesh, scene: Scene);
         private follow();
         _checkInputs(): void;
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
@@ -2319,7 +3123,7 @@ declare module BABYLON {
         _decideIfNeedsToMove(): boolean;
         _updatePosition(): void;
         dispose(): void;
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
@@ -2340,42 +3144,42 @@ declare module BABYLON {
         gamepadAngularSensibility: number;
         gamepadMoveSensibility: number;
         constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
 declare module BABYLON {
     class AnaglyphFreeCamera extends FreeCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class AnaglyphArcRotateCamera extends ArcRotateCamera {
         constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class AnaglyphGamepadCamera extends GamepadCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class AnaglyphUniversalCamera extends UniversalCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class StereoscopicFreeCamera extends FreeCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class StereoscopicArcRotateCamera extends ArcRotateCamera {
         constructor(name: string, alpha: number, beta: number, radius: number, target: any, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class StereoscopicGamepadCamera extends GamepadCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
     class StereoscopicUniversalCamera extends UniversalCamera {
         constructor(name: string, position: Vector3, interaxialDistance: number, isStereoscopicSideBySide: boolean, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
@@ -2425,7 +3229,7 @@ declare module BABYLON {
          */
         _updateRigCameras(): void;
         private _getRigCamPosition(halfSpace, result);
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
@@ -2434,7 +3238,7 @@ declare module BABYLON {
         touchAngularSensibility: number;
         touchMoveSensibility: number;
         constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
         _setupInputs(): void;
     }
 }
@@ -2444,2858 +3248,14 @@ declare module BABYLON {
         gamepadAngularSensibility: number;
         gamepadMoveSensibility: number;
         constructor(name: string, position: Vector3, scene: Scene);
-        getTypeName(): string;
+        getClassName(): string;
     }
 }
 
 declare module BABYLON {
     class VirtualJoysticksCamera extends FreeCamera {
         constructor(name: string, position: Vector3, scene: Scene);
-    }
-}
-
-declare module BABYLON {
-    /**
-     * Stores 2D Bounding Information.
-     * This class handles a circle area and a bounding rectangle one.
-     */
-    class BoundingInfo2D {
-        /**
-         * The coordinate of the center of the bounding info
-         */
-        center: Vector2;
-        /**
-         * The radius of the bounding circle, from the center of the bounded object
-         */
-        radius: number;
-        /**
-         * The extent of the bounding rectangle, from the center of the bounded object.
-         * This is an absolute value in both X and Y of the vector which describe the right/top corner of the rectangle, you can easily reconstruct the whole rectangle by negating X &| Y.
-         */
-        extent: Vector2;
-        constructor();
-        /**
-         * Create a BoundingInfo2D object from a given size
-         * @param size the size that will be used to set the extend, radius will be computed from it.
-         */
-        static CreateFromSize(size: Size): BoundingInfo2D;
-        /**
-         * Create a BoundingInfo2D object from a given radius
-         * @param radius the radius to use, the extent will be computed from it.
-         */
-        static CreateFromRadius(radius: number): BoundingInfo2D;
-        /**
-         * Create a BoundingInfo2D object from a list of points.
-         * The resulted object will be the smallest bounding area that includes all the given points.
-         * @param points an array of points to compute the bounding object from.
-         */
-        static CreateFromPoints(points: Vector2[]): BoundingInfo2D;
-        /**
-         * Update a BoundingInfo2D object using the given Size as input
-         * @param size the bounding data will be computed from this size.
-         * @param b must be a valid/allocated object, it will contain the result of the operation
-         */
-        static CreateFromSizeToRef(size: Size, b: BoundingInfo2D): void;
-        /**
-         * Update a BoundingInfo2D object using the given radius as input
-         * @param radius the bounding data will be computed from this radius
-         * @param b must be a valid/allocated object, it will contain the result of the operation
-         */
-        static CreateFromRadiusToRef(radius: number, b: BoundingInfo2D): void;
-        /**
-         * Update a BoundingInfo2D object using the given points array as input
-         * @param points the point array to use to update the bounding data
-         * @param b must be a valid/allocated object, it will contain the result of the operation
-         */
-        static CreateFromPointsToRef(points: Vector2[], b: BoundingInfo2D): void;
-        /**
-         * Update a BoundingInfo2D object using the given min/max values as input
-         * @param xmin the smallest x coordinate
-         * @param xmax the biggest x coordinate
-         * @param ymin the smallest y coordinate
-         * @param ymax the buggest y coordinate
-         * @param b must be a valid/allocated object, it will contain the result of the operation
-         */
-        static CreateFromMinMaxToRef(xmin: number, xmax: number, ymin: number, ymax: number, b: BoundingInfo2D): void;
-        /**
-         * Duplicate this instance and return a new one
-         * @return the duplicated instance
-         */
-        clone(): BoundingInfo2D;
-        clear(): void;
-        copyFrom(src: BoundingInfo2D): void;
-        /**
-         * return the max extend of the bounding info
-         */
-        max(): Vector2;
-        /**
-         * Update a vector2 with the max extend of the bounding info
-         * @param result must be a valid/allocated vector2 that will contain the result of the operation
-         */
-        maxToRef(result: Vector2): void;
-        /**
-         * Apply a transformation matrix to this BoundingInfo2D and return a new instance containing the result
-         * @param matrix the transformation matrix to apply
-         * @return the new instance containing the result of the transformation applied on this BoundingInfo2D
-         */
-        transform(matrix: Matrix): BoundingInfo2D;
-        /**
-         * Compute the union of this BoundingInfo2D with a given one, returns a new BoundingInfo2D as a result
-         * @param other the second BoundingInfo2D to compute the union with this one
-         * @return a new instance containing the result of the union
-         */
-        union(other: BoundingInfo2D): BoundingInfo2D;
-        private static _transform;
-        /**
-         * Transform this BoundingInfo2D with a given matrix and store the result in an existing BoundingInfo2D instance.
-         * This is a GC friendly version, try to use it as much as possible, specially if your transformation is inside a loop, allocate the result object once for good outside of the loop and use it every time.
-         * @param matrix The matrix to use to compute the transformation
-         * @param result A VALID (i.e. allocated) BoundingInfo2D object where the result will be stored
-         */
-        transformToRef(matrix: Matrix, result: BoundingInfo2D): void;
-        /**
-         * Compute the union of this BoundingInfo2D with another one and store the result in a third valid BoundingInfo2D object
-         * This is a GC friendly version, try to use it as much as possible, specially if your transformation is inside a loop, allocate the result object once for good outside of the loop and use it every time.
-         * @param other the second object used to compute the union
-         * @param result a VALID BoundingInfo2D instance (i.e. allocated) where the result will be stored
-         */
-        unionToRef(other: BoundingInfo2D, result: BoundingInfo2D): void;
-        /**
-         * Check if the given point is inside the BoundingInfo.
-         * The test is first made on the radius, then inside the rectangle described by the extent
-         * @param pickPosition the position to test
-         * @return true if the point is inside, false otherwise
-         */
-        doesIntersect(pickPosition: Vector2): boolean;
-    }
-}
-
-declare module BABYLON {
-    /**
-     * This interface is used to implement a lockable instance pattern.
-     * Classes that implements it may be locked at any time, making their content immutable from now on.
-     * You also can query if a given instance is locked or not.
-     * This allow instances to be shared among several 'consumers'.
-     */
-    interface ILockable {
-        /**
-         * Query the lock state
-         * @returns returns true if the object is locked and immutable, false if it's not
-         */
-        isLocked(): boolean;
-        /**
-         * A call to this method will definitely lock the instance, making its content immutable
-         * @returns the previous lock state of the object. so if true is returned the object  were already locked and this method does nothing, if false is returned it means the object wasn't locked and this call locked it for good.
-         */
-        lock(): boolean;
-    }
-    /**
-     * This interface defines the IBrush2D contract.
-     * Classes implementing a new type of Brush2D must implement this interface
-     */
-    interface IBrush2D extends ILockable {
-        /**
-         * Define if the brush will use transparency / alpha blending
-         * @returns true if the brush use transparency
-         */
-        isTransparent(): boolean;
-        /**
-         * It is critical for each instance of a given Brush2D type to return a unique string that identifies it because the Border instance will certainly be part of the computed ModelKey for a given Primitive
-         * @returns A string identifier that uniquely identify the instance
-         */
-        toString(): string;
-    }
-    /**
-     * Base class implementing the ILocable interface.
-     * The particularity of this class is to call the protected onLock() method when the instance is about to be locked for good.
-     */
-    class LockableBase implements ILockable {
-        isLocked(): boolean;
-        private _isLocked;
-        lock(): boolean;
-        /**
-         * Protected handler that will be called when the instance is about to be locked.
-         */
-        protected onLock(): void;
-    }
-    class SolidColorBrush2D extends LockableBase implements IBrush2D {
-        constructor(color: Color4, lock?: boolean);
-        /**
-         * Return true if the brush is transparent, false if it's totally opaque
-         */
-        isTransparent(): boolean;
-        /**
-         * The color used by this instance to render
-         * @returns the color object. Note that it's not a clone of the actual object stored in the instance so you MUST NOT modify it, otherwise unexpected behavior might occurs.
-         */
-        color: Color4;
-        /**
-         * Return a unique identifier of the instance, which is simply the hexadecimal representation (CSS Style) of the solid color.
-         */
-        toString(): string;
-        private _color;
-    }
-    class GradientColorBrush2D extends LockableBase implements IBrush2D {
-        constructor(color1: Color4, color2: Color4, translation?: Vector2, rotation?: number, scale?: number, lock?: boolean);
-        /**
-         * Return true if the brush is transparent, false if it's totally opaque
-         */
-        isTransparent(): boolean;
-        /**
-         * First color, the blend will start from this color
-         */
-        color1: Color4;
-        /**
-         * Second color, the blend will end to this color
-         */
-        color2: Color4;
-        /**
-         * Translation vector to apply on the blend
-         * Default is [0;0]
-         */
-        translation: Vector2;
-        /**
-         * Rotation in radian to apply to the brush
-         * Default direction of the brush is vertical, you can change this using this property.
-         * Default is 0.
-         */
-        rotation: number;
-        /**
-         * Scale factor to apply to the gradient.
-         * Default is 1: no scale.
-         */
-        scale: number;
-        /**
-         * Return a string describing the brush
-         */
-        toString(): string;
-        /**
-         * Build a unique key string for the given parameters
-         */
-        static BuildKey(color1: Color4, color2: Color4, translation: Vector2, rotation: number, scale: number): string;
-        private _color1;
-        private _color2;
-        private _translation;
-        private _rotation;
-        private _scale;
-    }
-}
-
-declare module BABYLON {
-    class Canvas2DEngineBoundData {
-        GetOrAddModelCache<TInstData>(key: string, factory: (key: string) => ModelRenderCache): ModelRenderCache;
-        private _modelCache;
-        DisposeModelRenderCache(modelRenderCache: ModelRenderCache): boolean;
-    }
-    abstract class Canvas2D extends Group2D {
-        /**
-         * In this strategy only the direct children groups of the Canvas will be cached, their whole content (whatever the sub groups they have) into a single bitmap.
-         * This strategy doesn't allow primitives added directly as children of the Canvas.
-         * You typically want to use this strategy of a screenSpace fullscreen canvas: you don't want a bitmap cache taking the whole screen resolution but still want the main contents (say UI in the topLeft and rightBottom for instance) to be efficiently cached.
-         */
-        static CACHESTRATEGY_TOPLEVELGROUPS: number;
-        /**
-         * In this strategy each group will have its own cache bitmap (except if a given group explicitly defines the DONTCACHEOVERRIDE or CACHEINPARENTGROUP behaviors).
-         * This strategy is typically used if the canvas has some groups that are frequently animated. Unchanged ones will have a steady cache and the others will be refreshed when they change, reducing the redraw operation count to their content only.
-         * When using this strategy, group instances can rely on the DONTCACHEOVERRIDE or CACHEINPARENTGROUP behaviors to minimize the amount of cached bitmaps.
-         * Note that in this mode the Canvas itself is not cached, it only contains the sprites of its direct children group to render, there's no point to cache the whole canvas, sprites will be rendered pretty efficiently, the memory cost would be too great for the value of it.
-         */
-        static CACHESTRATEGY_ALLGROUPS: number;
-        /**
-         * In this strategy the whole canvas is cached into a single bitmap containing every primitives it owns, at the exception of the ones that are owned by a group having the DONTCACHEOVERRIDE behavior (these primitives will be directly drawn to the viewport at each render for screenSpace Canvas or be part of the Canvas cache bitmap for worldSpace Canvas).
-         */
-        static CACHESTRATEGY_CANVAS: number;
-        /**
-         * This strategy is used to recompose/redraw the canvas entirely at each viewport render.
-         * Use this strategy if memory is a concern above rendering performances and/or if the canvas is frequently animated (hence reducing the benefits of caching).
-         * Note that you can't use this strategy for WorldSpace Canvas, they need at least a top level group caching.
-         */
-        static CACHESTRATEGY_DONTCACHE: number;
-        constructor(scene: Scene, settings?: {
-            id?: string;
-            children?: Array<Prim2DBase>;
-            size?: Size;
-            isScreenSpace?: boolean;
-            cachingStrategy?: number;
-            enableInteraction?: boolean;
-            origin?: Vector2;
-            isVisible?: boolean;
-            backgroundRoundRadius?: number;
-            backgroundFill?: IBrush2D | string;
-            backgroundBorder?: IBrush2D | string;
-            backgroundBorderThickNess?: number;
-        });
-        drawCallsOpaqueCounter: PerfCounter;
-        drawCallsAlphaTestCounter: PerfCounter;
-        drawCallsTransparentCounter: PerfCounter;
-        groupRenderCounter: PerfCounter;
-        updateTransparentDataCounter: PerfCounter;
-        cachedGroupRenderCounter: PerfCounter;
-        updateCachedStateCounter: PerfCounter;
-        updateLayoutCounter: PerfCounter;
-        updatePositioningCounter: PerfCounter;
-        updateLocalTransformCounter: PerfCounter;
-        updateGlobalTransformCounter: PerfCounter;
-        boundingInfoRecomputeCounter: PerfCounter;
-        protected _canvasPreInit(settings: any): void;
-        static _zMinDelta: number;
-        private _setupInteraction(enable);
-        /**
-         * If you set your own WorldSpaceNode to display the Canvas2D you have to provide your own implementation of this method which computes the local position in the Canvas based on the given 3D World one.
-         * Beware that you have to take under consideration the origin in your calculations! Good luck!
-         */
-        worldSpaceToNodeLocal: (worldPos: Vector3) => Vector2;
-        /**
-         * If you use a custom WorldSpaceCanvasNode you have to override this property to update the UV of your object to reflect the changes due to a resizing of the cached bitmap
-         */
-        worldSpaceCacheChanged: () => void;
-        /**
-         * Internal method, you should use the Prim2DBase version instead
-         */
-        _setPointerCapture(pointerId: number, primitive: Prim2DBase): boolean;
-        /**
-         * Internal method, you should use the Prim2DBase version instead
-         */
-        _releasePointerCapture(pointerId: number, primitive: Prim2DBase): boolean;
-        /**
-         * Determine if the given pointer is captured or not
-         * @param pointerId the Id of the pointer
-         * @return true if it's captured, false otherwise
-         */
-        isPointerCaptured(pointerId: number): boolean;
-        private getCapturedPrimitive(pointerId);
-        private static _interInfo;
-        private _handlePointerEventForInteraction(eventData, localPosition, eventState);
-        private _updatePointerInfo(eventData, localPosition);
-        private _updateIntersectionList(mouseLocalPos, isCapture);
-        private _updateOverStatus();
-        private _updatePrimPointerPos(prim);
-        private _notifDebugMode;
-        private _debugExecObserver(prim, mask);
-        private _bubbleNotifyPrimPointerObserver(prim, mask, eventData);
-        private _triggerActionManager(prim, ppi, mask, eventData);
-        _notifParents(prim: Prim2DBase, mask: number): void;
-        /**
-         * Don't forget to call the dispose method when you're done with the Canvas instance.
-         * But don't worry, if you dispose its scene, the canvas will be automatically disposed too.
-         */
-        dispose(): boolean;
-        /**
-         * Accessor to the Scene that owns the Canvas
-         * @returns The instance of the Scene object
-         */
-        scene: Scene;
-        /**
-         * Accessor to the Engine that drives the Scene used by this Canvas
-         * @returns The instance of the Engine object
-         */
-        engine: Engine;
-        /**
-         * Accessor of the Caching Strategy used by this Canvas.
-         * See Canvas2D.CACHESTRATEGY_xxxx static members for more information
-         * @returns the value corresponding to the used strategy.
-         */
-        cachingStrategy: number;
-        /**
-         * Return true if the Canvas is a Screen Space one, false if it's a World Space one.
-         * @returns {}
-         */
-        isScreenSpace: boolean;
-        /**
-         * Only valid for World Space Canvas, returns the scene node that displays the canvas
-         */
-        worldSpaceCanvasNode: Node;
-        /**
-         * Check if the WebGL Instanced Array extension is supported or not
-         */
-        supportInstancedArray: boolean;
-        /**
-         * Property that defines the fill object used to draw the background of the Canvas.
-         * Note that Canvas with a Caching Strategy of
-         * @returns If the background is not set, null will be returned, otherwise a valid fill object is returned.
-         */
-        backgroundFill: IBrush2D;
-        /**
-         * Property that defines the border object used to draw the background of the Canvas.
-         * @returns If the background is not set, null will be returned, otherwise a valid border object is returned.
-         */
-        backgroundBorder: IBrush2D;
-        /**
-         * Property that defines the thickness of the border object used to draw the background of the Canvas.
-         * @returns If the background is not set, null will be returned, otherwise a valid number matching the thickness is returned.
-         */
-        backgroundBorderThickness: number;
-        /**
-         * You can set the roundRadius of the background
-         * @returns The current roundRadius
-         */
-        backgroundRoundRadius: number;
-        /**
-         * Enable/Disable interaction for this Canvas
-         * When enabled the Prim2DBase.pointerEventObservable property will notified when appropriate events occur
-         */
-        interactionEnabled: boolean;
-        /**
-         * Access the babylon.js' engine bound data, do not invoke this method, it's for internal purpose only
-         * @returns {}
-         */
-        _engineData: Canvas2DEngineBoundData;
-        createCanvasProfileInfoCanvas(): Canvas2D;
-        private checkBackgroundAvailability();
-        private _initPerfMetrics();
-        private _fetchPerfMetrics();
-        private _updateProfileCanvas();
-        _addDrawCallCount(count: number, renderMode: number): void;
-        _addGroupRenderCount(count: number): void;
-        _addUpdateTransparentDataCount(count: number): void;
-        addCachedGroupRenderCounter(count: number): void;
-        addUpdateCachedStateCounter(count: number): void;
-        addUpdateLayoutCounter(count: number): void;
-        addUpdatePositioningCounter(count: number): void;
-        addupdateLocalTransformCounter(count: number): void;
-        addUpdateGlobalTransformCounter(count: number): void;
-        private __engineData;
-        private _interactionEnabled;
-        private _primPointerInfo;
-        private _updateRenderId;
-        private _intersectionRenderId;
-        private _hoverStatusRenderId;
-        private _pickStartingPosition;
-        private _pickedDownPrim;
-        private _pickStartingTime;
-        private _previousIntersectionList;
-        private _actualIntersectionList;
-        private _previousOverPrimitive;
-        private _actualOverPrimitive;
-        private _capturedPointers;
-        private _scenePrePointerObserver;
-        private _scenePointerObserver;
-        protected _worldSpaceNode: Node;
-        private _mapCounter;
-        private _background;
-        private _scene;
-        private _engine;
-        private _fitRenderingDevice;
-        private _isScreenSpace;
-        private _cachedCanvasGroup;
-        private _cachingStrategy;
-        private _hierarchyLevelMaxSiblingCount;
-        private _groupCacheMaps;
-        private _beforeRenderObserver;
-        private _afterRenderObserver;
-        private _supprtInstancedArray;
-        private _trackedGroups;
-        protected _maxAdaptiveWorldSpaceCanvasSize: number;
-        _renderingSize: Size;
-        private _drawCallsOpaqueCounter;
-        private _drawCallsAlphaTestCounter;
-        private _drawCallsTransparentCounter;
-        private _groupRenderCounter;
-        private _updateTransparentDataCounter;
-        private _cachedGroupRenderCounter;
-        private _updateCachedStateCounter;
-        private _updateLayoutCounter;
-        private _updatePositioningCounter;
-        private _updateGlobalTransformCounter;
-        private _updateLocalTransformCounter;
-        private _boundingInfoRecomputeCounter;
-        private _profilingCanvas;
-        private _profileInfoText;
-        protected onPrimBecomesDirty(): void;
-        private static _v;
-        private static _m;
-        private static _mI;
-        private _updateTrackedNodes();
-        /**
-         * Call this method change you want to have layout related data computed and up to date (layout area, primitive area, local/global transformation matrices)
-         */
-        updateCanvasLayout(forceRecompute: boolean): void;
-        private _updateAdaptiveSizeWorldCanvas();
-        private _updateCanvasState(forceRecompute);
-        /**
-         * Method that renders the Canvas, you should not invoke
-         */
-        private _render();
-        /**
-         * Internal method that allocate a cache for the given group.
-         * Caching is made using a collection of MapTexture where many groups have their bitmap cache stored inside.
-         * @param group The group to allocate the cache of.
-         * @return custom type with the PackedRect instance giving information about the cache location into the texture and also the MapTexture instance that stores the cache.
-         */
-        _allocateGroupCache(group: Group2D, parent: Group2D, minSize?: Size, useMipMap?: boolean, anisotropicLevel?: number): {
-            node: PackedRect;
-            texture: MapTexture;
-            sprite: Sprite2D;
-        };
-        /**
-         * Define the default size used for both the width and height of a MapTexture to allocate.
-         * Note that some MapTexture might be bigger than this size if the first node to allocate is bigger in width or height
-         */
-        private static _groupTextureCacheSize;
-        /**
-         * Internal method used to register a Scene Node to track position for the given group
-         * Do not invoke this method, for internal purpose only.
-         * @param group the group to track its associated Scene Node
-         */
-        _registerTrackedNode(group: Group2D): void;
-        /**
-         * Internal method used to unregister a tracked Scene Node
-         * Do not invoke this method, it's for internal purpose only.
-         * @param group the group to unregister its tracked Scene Node from.
-         */
-        _unregisterTrackedNode(group: Group2D): void;
-        /**
-         * Get a Solid Color Brush instance matching the given color.
-         * @param color The color to retrieve
-         * @return A shared instance of the SolidColorBrush2D class that use the given color
-         */
-        static GetSolidColorBrush(color: Color4): IBrush2D;
-        /**
-         * Get a Solid Color Brush instance matching the given color expressed as a CSS formatted hexadecimal value.
-         * @param color The color to retrieve
-         * @return A shared instance of the SolidColorBrush2D class that uses the given color
-         */
-        static GetSolidColorBrushFromHex(hexValue: string): IBrush2D;
-        /**
-         * Get a Gradient Color Brush
-         * @param color1 starting color
-         * @param color2 engine color
-         * @param translation translation vector to apply. default is [0;0]
-         * @param rotation rotation in radian to apply to the brush, initial direction is top to bottom. rotation is counter clockwise. default is 0.
-         * @param scale scaling factor to apply. default is 1.
-         */
-        static GetGradientColorBrush(color1: Color4, color2: Color4, translation?: Vector2, rotation?: number, scale?: number): IBrush2D;
-        /**
-         * Create a solid or gradient brush from a string value.
-         * @param brushString should be either
-         *  - "solid: #RRGGBBAA" or "#RRGGBBAA"
-         *  - "gradient: #FF808080, #FFFFFFF[, [10:20], 180, 1]" for color1, color2, translation, rotation (degree), scale. The last three are optionals, but if specified must be is this order. "gradient:" can be omitted.
-         */
-        static GetBrushFromString(brushString: string): IBrush2D;
-        private static _solidColorBrushes;
-        private static _gradientColorBrushes;
-    }
-    class WorldSpaceCanvas2D extends Canvas2D {
-        /**
-         * Create a new 2D WorldSpace Rendering Canvas, it is a 2D rectangle that has a size (width/height) and a world transformation information to place it in the world space.
-         * This kind of canvas can't have its Primitives directly drawn in the Viewport, they need to be cached in a bitmap at some point, as a consequence the DONT_CACHE strategy is unavailable. For now only CACHESTRATEGY_CANVAS is supported, but the remaining strategies will be soon.
-         * @param scene the Scene that owns the Canvas
-         * @param size the dimension of the Canvas in World Space
-         * @param settings a combination of settings, possible ones are
-         *  - children: an array of direct children primitives
-         *  - id: a text identifier, for information purpose only, default is null.
-         *  - worldPosition the position of the Canvas in World Space, default is [0,0,0]
-         *  - worldRotation the rotation of the Canvas in World Space, default is Quaternion.Identity()
-         * - sideOrientation: Unexpected behavior occur if the value is different from Mesh.DEFAULTSIDE right now, so please use this one, which is the default.
-         * - cachingStrategy Must be CACHESTRATEGY_CANVAS for now, which is the default.
-         * - enableInteraction: if true the pointer events will be listened and rerouted to the appropriate primitives of the Canvas2D through the Prim2DBase.onPointerEventObservable observable property. Default is false (the opposite of ScreenSpace).
-         * - isVisible: true if the canvas must be visible, false for hidden. Default is true.
-         * - backgroundRoundRadius: the round radius of the background, either backgroundFill or backgroundBorder must be specified.
-         * - backgroundFill: the brush to use to create a background fill for the canvas. can be a string value (see Canvas2D.GetBrushFromString) or a IBrush2D instance.
-         * - backgroundBorder: the brush to use to create a background border for the canvas. can be a string value (see Canvas2D.GetBrushFromString) or a IBrush2D instance.
-         * - backgroundBorderThickness: if a backgroundBorder is specified, its thickness can be set using this property
-         * - customWorldSpaceNode: if specified the Canvas will be rendered in this given Node. But it's the responsibility of the caller to set the "worldSpaceToNodeLocal" property to compute the hit of the mouse ray into the node (in world coordinate system) as well as rendering the cached bitmap in the node itself. The properties cachedRect and cachedTexture of Group2D will give you what you need to do that.
-         * - maxAdaptiveCanvasSize: set the max size (width and height) of the bitmap that will contain the cached version of the WorldSpace Canvas. Default is 1024 or less if it's not supported. In any case the value you give will be clipped by the maximum that WebGL supports on the running device. You can set any size, more than 1024 if you want, but testing proved it's a good max value for non "retina" like screens.
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(scene: Scene, size: Size, settings?: {
-            children?: Array<Prim2DBase>;
-            id?: string;
-            worldPosition?: Vector3;
-            worldRotation?: Quaternion;
-            sideOrientation?: number;
-            cachingStrategy?: number;
-            enableInteraction?: boolean;
-            isVisible?: boolean;
-            backgroundRoundRadius?: number;
-            backgroundFill?: IBrush2D | string;
-            backgroundBorder?: IBrush2D | string;
-            backgroundBorderThickNess?: number;
-            customWorldSpaceNode?: Node;
-            maxAdaptiveCanvasSize?: number;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-    }
-    class ScreenSpaceCanvas2D extends Canvas2D {
-        /**
-         * Create a new 2D ScreenSpace Rendering Canvas, it is a 2D rectangle that has a size (width/height) and a position relative to the bottom/left corner of the screen.
-         * ScreenSpace Canvas will be drawn in the Viewport as a 2D Layer lying to the top of the 3D Scene. Typically used for traditional UI.
-         * All caching strategies will be available.
-         * PLEASE NOTE: the origin of a Screen Space Canvas is set to [0;0] (bottom/left) which is different than the default origin of a Primitive which is centered [0.5;0.5]
-         * @param scene the Scene that owns the Canvas
-         * @param settings a combination of settings, possible ones are
-         *  - children: an array of direct children primitives
-         *  - id: a text identifier, for information purpose only
-         *  - x: the position along the x axis (horizontal), relative to the left edge of the viewport. you can alternatively use the position setting.
-         *  - y: the position along the y axis (vertically), relative to the bottom edge of the viewport. you can alternatively use the position setting.
-         *  - position: the position of the canvas, relative from the bottom/left of the scene's viewport. Alternatively you can set the x and y properties directly. Default value is [0, 0]
-         *  - width: the width of the Canvas. you can alternatively use the size setting.
-         *  - height: the height of the Canvas. you can alternatively use the size setting.
-         *  - size: the Size of the canvas. Alternatively the width and height properties can be set. If null two behaviors depend on the cachingStrategy: if it's CACHESTRATEGY_CACHECANVAS then it will always auto-fit the rendering device, in all the other modes it will fit the content of the Canvas
-         *  - cachingStrategy: either CACHESTRATEGY_TOPLEVELGROUPS, CACHESTRATEGY_ALLGROUPS, CACHESTRATEGY_CANVAS, CACHESTRATEGY_DONTCACHE. Please refer to their respective documentation for more information. Default is Canvas2D.CACHESTRATEGY_DONTCACHE
-         *  - enableInteraction: if true the pointer events will be listened and rerouted to the appropriate primitives of the Canvas2D through the Prim2DBase.onPointerEventObservable observable property. Default is true.
-         *  - isVisible: true if the canvas must be visible, false for hidden. Default is true.
-         * - backgroundRoundRadius: the round radius of the background, either backgroundFill or backgroundBorder must be specified.
-         * - backgroundFill: the brush to use to create a background fill for the canvas. can be a string value (see BABYLON.Canvas2D.GetBrushFromString) or a IBrush2D instance.
-         * - backgroundBorder: the brush to use to create a background border for the canvas. can be a string value (see BABYLON.Canvas2D.GetBrushFromString) or a IBrush2D instance.
-         * - backgroundBorderThickness: if a backgroundBorder is specified, its thickness can be set using this property
-         * - customWorldSpaceNode: if specified the Canvas will be rendered in this given Node. But it's the responsibility of the caller to set the "worldSpaceToNodeLocal" property to compute the hit of the mouse ray into the node (in world coordinate system) as well as rendering the cached bitmap in the node itself. The properties cachedRect and cachedTexture of Group2D will give you what you need to do that.
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see BABYLON.PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see BABYLON.PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see BABYLON.PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see BABYLON.PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see BABYLON.PrimitiveThickness.fromString)
-         */
-        constructor(scene: Scene, settings?: {
-            children?: Array<Prim2DBase>;
-            id?: string;
-            x?: number;
-            y?: number;
-            position?: Vector2;
-            origin?: Vector2;
-            width?: number;
-            height?: number;
-            size?: Size;
-            cachingStrategy?: number;
-            enableInteraction?: boolean;
-            isVisible?: boolean;
-            backgroundRoundRadius?: number;
-            backgroundFill?: IBrush2D | string;
-            backgroundBorder?: IBrush2D | string;
-            backgroundBorderThickNess?: number;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-    }
-}
-
-declare module BABYLON {
-    class LayoutEngineBase implements ILockable {
-        constructor();
-        updateLayout(prim: Prim2DBase): void;
-        isChildPositionAllowed: boolean;
-        isLocked(): boolean;
-        lock(): boolean;
-        layoutDirtyOnPropertyChangedMask: any;
-        private _isLocked;
-    }
-    class CanvasLayoutEngine extends LayoutEngineBase {
-        static Singleton: CanvasLayoutEngine;
-        updateLayout(prim: Prim2DBase): void;
-        private _doUpdate(prim);
-        isChildPositionAllowed: boolean;
-    }
-    class StackPanelLayoutEngine extends LayoutEngineBase {
-        constructor();
-        static Horizontal: StackPanelLayoutEngine;
-        static Vertical: StackPanelLayoutEngine;
-        private static _horizontal;
-        private static _vertical;
-        isHorizontal: boolean;
-        private _isHorizontal;
-        updateLayout(prim: Prim2DBase): void;
-        isChildPositionAllowed: boolean;
-    }
-}
-
-declare module BABYLON {
-    class Ellipse2DRenderCache extends ModelRenderCache {
-        effectsReady: boolean;
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFillInstanced: Effect;
-        effectFill: Effect;
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorderInstanced: Effect;
-        effectBorder: Effect;
-        constructor(engine: Engine, modelKey: string);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Ellipse2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        properties: Vector3;
-    }
-    class Ellipse2D extends Shape2D {
-        static acutalSizeProperty: Prim2DPropInfo;
-        static subdivisionsProperty: Prim2DPropInfo;
-        actualSize: Size;
-        subdivisions: number;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Create an Ellipse 2D Shape primitive
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id: a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - size: the size of the group. Alternatively the width and height properties can be set. Default will be [10;10].
-         * - subdivision: the number of subdivision to create the ellipse perimeter, default is 64.
-         * - fill: the brush used to draw the fill content of the ellipse, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white. can also be a string value (see Canvas2D.GetBrushFromString)
-         * - border: the brush used to draw the border of the ellipse, you can set null to draw nothing (but you will have to set a fill brush), default is null. can be a string value (see Canvas2D.GetBrushFromString)
-         * - borderThickness: the thickness of the drawn border, default is 1.
-         * - isVisible: true if the group must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            size?: Size;
-            width?: number;
-            height?: number;
-            subdivisions?: number;
-            fill?: IBrush2D | string;
-            border?: IBrush2D | string;
-            borderThickness?: number;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Ellipse2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _subdivisions;
-    }
-}
-
-declare module BABYLON {
-    class Group2D extends Prim2DBase {
-        static GROUP2D_PROPCOUNT: number;
-        static sizeProperty: Prim2DPropInfo;
-        static actualSizeProperty: Prim2DPropInfo;
-        /**
-         * Default behavior, the group will use the caching strategy defined at the Canvas Level
-         */
-        static GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY: number;
-        /**
-         * When used, this group's content won't be cached, no matter which strategy used.
-         * If the group is part of a WorldSpace Canvas, its content will be drawn in the Canvas cache bitmap.
-         */
-        static GROUPCACHEBEHAVIOR_DONTCACHEOVERRIDE: number;
-        /**
-         * When used, the group's content will be cached in the nearest cached parent group/canvas
-         */
-        static GROUPCACHEBEHAVIOR_CACHEINPARENTGROUP: number;
-        /**
-         * Create an Logical or Renderable Group.
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - size: the size of the group. Alternatively the width and height properties can be set. If null the size will be computed from its content, default is null.
-         *  - cacheBehavior: Define how the group should behave regarding the Canvas's cache strategy, default is Group2D.GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY
-         * - layoutEngine: either an instance of a layout engine based class (StackPanel.Vertical, StackPanel.Horizontal) or a string ('canvas' for Canvas layout, 'StackPanel' or 'HorizontalStackPanel' for horizontal Stack Panel layout, 'VerticalStackPanel' for vertical Stack Panel layout).
-         * - isVisible: true if the group must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            trackNode?: Node;
-            opacity?: number;
-            origin?: Vector2;
-            size?: Size;
-            width?: number;
-            height?: number;
-            cacheBehavior?: number;
-            layoutEngine?: LayoutEngineBase | string;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        static _createCachedCanvasGroup(owner: Canvas2D): Group2D;
-        protected applyCachedTexture(vertexData: VertexData, material: StandardMaterial): void;
-        /**
-         * Allow you to access the information regarding the cached rectangle of the Group2D into the MapTexture.
-         * If the `noWorldSpaceNode` options was used at the creation of a WorldSpaceCanvas, the rendering of the canvas must be made by the caller, so typically you want to bind the cacheTexture property to some material/mesh and you MUST use the Group2D.cachedUVs property to get the UV coordinates to use for your quad that will display the Canvas and NOT the PackedRect.UVs property which are incorrect because the allocated surface may be bigger (due to over-provisioning or shrinking without deallocating) than what the Group is actually using.
-         */
-        cachedRect: PackedRect;
-        /**
-         * The UVs into the MapTexture that map the cached group
-         */
-        cachedUVs: Vector2[];
-        cachedUVsChanged: Observable<Vector2[]>;
-        /**
-         * Access the texture that maintains a cached version of the Group2D.
-         * This is useful only if you're not using a WorldSpaceNode for your WorldSpace Canvas and therefore need to perform the rendering yourself.
-         */
-        cacheTexture: MapTexture;
-        /**
-         * Call this method to remove this Group and its children from the Canvas
-         */
-        dispose(): boolean;
-        /**
-         * @returns Returns true if the Group render content, false if it's a logical group only
-         */
-        isRenderableGroup: boolean;
-        /**
-         * @returns only meaningful for isRenderableGroup, will be true if the content of the Group is cached into a texture, false if it's rendered every time
-         */
-        isCachedGroup: boolean;
-        /**
-         * Get/Set the size of the group. If null the size of the group will be determine from its content.
-         * BEWARE: if the Group is a RenderableGroup and its content is cache the texture will be resized each time the group is getting bigger. For performance reason the opposite won't be true: the texture won't shrink if the group does.
-         */
-        size: Size;
-        viewportSize: ISize;
-        actualSize: Size;
-        /**
-         * Get/set the Cache Behavior, used in case the Canvas Cache Strategy is set to CACHESTRATEGY_ALLGROUPS. Can be either GROUPCACHEBEHAVIOR_CACHEINPARENTGROUP, GROUPCACHEBEHAVIOR_DONTCACHEOVERRIDE or GROUPCACHEBEHAVIOR_FOLLOWCACHESTRATEGY. See their documentation for more information.
-         * It is critical to understand than you HAVE TO play with this behavior in order to achieve a good performance/memory ratio. Caching all groups would certainly be the worst strategy of all.
-         */
-        cacheBehavior: number;
-        _addPrimToDirtyList(prim: Prim2DBase): void;
-        _renderCachedCanvas(): void;
-        /**
-         * Get/set the Scene's Node that should be tracked, the group's position will follow the projected position of the Node.
-         */
-        trackedNode: Node;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        protected _prepareGroupRender(context: PrepareRender2DContext): void;
-        protected _groupRender(): void;
-        private _updateTransparentData();
-        private _renderTransparentData();
-        private _prepareContext(engine, context, gii);
-        protected _setRenderingScale(scale: number): void;
-        private static _s;
-        private _bindCacheTarget();
-        private _unbindCacheTarget();
-        protected handleGroupChanged(prop: Prim2DPropInfo): void;
-        private detectGroupStates();
-        private _trackedNode;
-        protected _isRenderableGroup: boolean;
-        protected _isCachedGroup: boolean;
-        private _cacheGroupDirty;
-        private _cacheBehavior;
-        private _viewportPosition;
-        private _viewportSize;
-        _renderableData: RenderableGroupData;
-    }
-    class RenderableGroupData {
-        constructor();
-        dispose(engine: Engine): void;
-        addNewTransparentPrimitiveInfo(prim: RenderablePrim2D, gii: GroupInstanceInfo): TransparentPrimitiveInfo;
-        removeTransparentPrimitiveInfo(tpi: TransparentPrimitiveInfo): void;
-        transparentPrimitiveZChanged(tpi: TransparentPrimitiveInfo): void;
-        _primDirtyList: Array<Prim2DBase>;
-        _childrenRenderableGroups: Array<Group2D>;
-        _renderGroupInstancesInfo: StringDictionary<GroupInstanceInfo>;
-        _cacheNode: PackedRect;
-        _cacheTexture: MapTexture;
-        _cacheRenderSprite: Sprite2D;
-        _cacheNodeUVs: Vector2[];
-        _cacheNodeUVsChangedObservable: Observable<Vector2[]>;
-        _cacheSize: Size;
-        _useMipMap: boolean;
-        _anisotropicLevel: number;
-        _transparentListChanged: boolean;
-        _transparentPrimitives: Array<TransparentPrimitiveInfo>;
-        _transparentSegments: Array<TransparentSegment>;
-        _renderingScale: number;
-    }
-    class TransparentPrimitiveInfo {
-        _primitive: RenderablePrim2D;
-        _groupInstanceInfo: GroupInstanceInfo;
-        _transparentSegment: TransparentSegment;
-    }
-}
-
-declare module BABYLON {
-    class Lines2DRenderCache extends ModelRenderCache {
-        effectsReady: boolean;
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFill: Effect;
-        effectFillInstanced: Effect;
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorder: Effect;
-        effectBorderInstanced: Effect;
-        constructor(engine: Engine, modelKey: string);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Lines2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        boundingMin: Vector2;
-        boundingMax: Vector2;
-    }
-    class Lines2D extends Shape2D {
-        /**
-         * No Cap to apply on the extremity
-         */
-        static NoCap: number;
-        /**
-         * A round cap, will use the line thickness as diameter
-         */
-        static RoundCap: number;
-        /**
-         * Creates a triangle at the extremity.
-         */
-        static TriangleCap: number;
-        /**
-         * Creates a Square anchor at the extremity, the square size is twice the thickness of the line
-         */
-        static SquareAnchorCap: number;
-        /**
-         * Creates a round anchor at the extremity, the diameter is twice the thickness of the line
-         */
-        static RoundAnchorCap: number;
-        /**
-         * Creates a diamond anchor at the extremity.
-         */
-        static DiamondAnchorCap: number;
-        /**
-         * Creates an arrow anchor at the extremity. the arrow base size is twice the thickness of the line
-         */
-        static ArrowCap: number;
-        static pointsProperty: Prim2DPropInfo;
-        static fillThicknessProperty: Prim2DPropInfo;
-        static closedProperty: Prim2DPropInfo;
-        static startCapProperty: Prim2DPropInfo;
-        static endCapProperty: Prim2DPropInfo;
-        points: Vector2[];
-        fillThickness: number;
-        closed: boolean;
-        startCap: number;
-        endCap: number;
-        private static _prevA;
-        private static _prevB;
-        private static _curA;
-        private static _curB;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected boundingMin: Vector2;
-        protected boundingMax: Vector2;
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Create an 2D Lines Shape primitive. The defined lines may be opened or closed (see below)
-         * @param points an array that describe the points to use to draw the line, must contain at least two entries.
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - fillThickness: the thickness of the fill part of the line, can be null to draw nothing (but a border brush must be given), default is 1.
-         * - closed: if false the lines are said to be opened, the first point and the latest DON'T connect. if true the lines are said to be closed, the first and last point will be connected by a line. For instance you can define the 4 points of a rectangle, if you set closed to true a 4 edges rectangle will be drawn. If you set false, only three edges will be drawn, the edge formed by the first and last point won't exist. Default is false.
-         * - startCap: Draw a cap of the given type at the start of the first line, you can't define a Cap if the Lines2D is closed. Default is Lines2D.NoCap.
-         * - endCap: Draw a cap of the given type at the end of the last line, you can't define a Cap if the Lines2D is closed. Default is Lines2D.NoCap.
-         * - fill: the brush used to draw the fill content of the lines, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white. can be a string value (see Canvas2D.GetBrushFromString)
-         * - border: the brush used to draw the border of the lines, you can set null to draw nothing (but you will have to set a fill brush), default is null. can be a string value (see Canvas2D.GetBrushFromString)
-         * - borderThickness: the thickness of the drawn border, default is 1.
-         * - isVisible: true if the primitive must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(points: Vector2[], settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            fillThickness?: number;
-            closed?: boolean;
-            startCap?: number;
-            endCap?: number;
-            fill?: IBrush2D | string;
-            border?: IBrush2D | string;
-            borderThickness?: number;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        private _perp(v, res);
-        private _direction(a, b, res);
-        private static _miterTps;
-        private _computeMiter(tangent, miter, a, b);
-        private _intersect(x1, y1, x2, y2, x3, y3, x4, y4);
-        private _updateMinMax(array, offset);
-        private static _startDir;
-        private static _endDir;
-        private _store(array, contour, index, max, p, n, halfThickness, borderThickness, detectFlip?);
-        private _getCapSize(type, border?);
-        private static _tpsV;
-        private _storeVertex(vb, baseOffset, index, basePos, rotation, vertex, contour);
-        private _storeIndex(ib, baseOffset, index, vertexIndex);
-        private _buildCap(vb, vbi, ib, ibi, pos, thickness, borderThickness, type, capDir, contour);
-        private _buildLine(vb, contour, ht, bt?);
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Lines2DRenderCache;
-        private _computeLines2D();
-        size: Size;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private static _noCap;
-        private static _roundCap;
-        private static _triangleCap;
-        private static _squareAnchorCap;
-        private static _roundAnchorCap;
-        private static _diamondAnchorCap;
-        private static _arrowCap;
-        private static _roundCapSubDiv;
-        private _fillVB;
-        private _fillIB;
-        private _borderVB;
-        private _borderIB;
-        private _boundingMin;
-        private _boundingMax;
-        private _contour;
-        private _startCapContour;
-        private _startCapTriIndices;
-        private _endCapContour;
-        private _endCapTriIndices;
-        private _closed;
-        private _startCap;
-        private _endCap;
-        private _fillThickness;
-        private _points;
-    }
-}
-
-declare module BABYLON {
-    const enum ShaderDataType {
-        Vector2 = 0,
-        Vector3 = 1,
-        Vector4 = 2,
-        Matrix = 3,
-        float = 4,
-        Color3 = 5,
-        Color4 = 6,
-        Size = 7,
-    }
-    class GroupInstanceInfo {
-        constructor(owner: Group2D, mrc: ModelRenderCache, partCount: number);
-        dispose(): boolean;
-        private _isDisposed;
-        owner: Group2D;
-        modelRenderCache: ModelRenderCache;
-        partIndexFromId: StringDictionary<number>;
-        hasOpaqueData: boolean;
-        hasAlphaTestData: boolean;
-        hasTransparentData: boolean;
-        opaqueDirty: boolean;
-        opaqueData: GroupInfoPartData[];
-        alphaTestDirty: boolean;
-        alphaTestData: GroupInfoPartData[];
-        transparentOrderDirty: boolean;
-        transparentDirty: boolean;
-        transparentData: TransparentGroupInfoPartData[];
-        sortTransparentData(): void;
-        usedShaderCategories: string[];
-        strides: number[];
-        private _partCount;
-        private _strides;
-        private _usedShaderCategories;
-        private _opaqueData;
-        private _alphaTestData;
-        private _transparentData;
-    }
-    class TransparentSegment {
-        constructor();
-        dispose(engine: Engine): void;
-        groupInsanceInfo: GroupInstanceInfo;
-        startZ: number;
-        endZ: number;
-        startDataIndex: number;
-        endDataIndex: number;
-        partBuffers: WebGLBuffer[];
-    }
-    class GroupInfoPartData {
-        _partData: DynamicFloatArray;
-        _partBuffer: WebGLBuffer;
-        _partBufferSize: number;
-        constructor(stride: number);
-        dispose(engine: Engine): boolean;
-        private _isDisposed;
-    }
-    class TransparentGroupInfoPartData extends GroupInfoPartData {
-        constructor(stride: number, zoff: number);
-    }
-    class ModelRenderCache {
-        constructor(engine: Engine, modelKey: string);
-        dispose(): boolean;
-        isDisposed: boolean;
-        addRef(): number;
-        modelKey: string;
-        /**
-         * Render the model instances
-         * @param instanceInfo
-         * @param context
-         * @return must return true is the rendering succeed, false if the rendering couldn't be done (asset's not yet ready, like Effect)
-         */
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        addInstanceDataParts(data: InstanceDataBase[]): string;
-        removeInstanceData(key: string): void;
-        protected getPartIndexFromId(partId: number): number;
-        protected loadInstancingAttributes(partId: number, effect: Effect): InstancingAttributeInfo[];
-        private static v2;
-        private static v3;
-        private static v4;
-        protected setupUniforms(effect: Effect, partIndex: number, data: DynamicFloatArray, elementCount: number): void;
-        protected _engine: Engine;
-        private _modelKey;
-        _instancesData: StringDictionary<InstanceDataBase[]>;
-        private _nextKey;
-        private _refCounter;
-        _partData: ModelRenderCachePartData[];
-        _partsClassInfo: ClassTreeInfo<InstanceClassInfo, InstancePropInfo>[];
-    }
-    class ModelRenderCachePartData {
-        _partId: number;
-        _zBiasOffset: number;
-        _partDataStride: number;
-        _partUsedCategories: string[];
-        _partJoinedUsedCategories: string;
-    }
-}
-
-declare module BABYLON {
-    class PrepareRender2DContext {
-        constructor();
-        /**
-         * True if the primitive must be refreshed no matter what
-         * This mode is needed because sometimes the primitive doesn't change by itself, but external changes make a refresh of its InstanceData necessary
-         */
-        forceRefreshPrimitive: boolean;
-    }
-    class Render2DContext {
-        constructor(renderMode: number);
-        /**
-         * Define which render Mode should be used to render the primitive: one of Render2DContext.RenderModeXxxx property
-         */
-        renderMode: number;
-        /**
-         * If true hardware instancing is supported and must be used for the rendering. The groupInfoPartData._partBuffer must be used.
-         * If false rendering on a per primitive basis must be made. The following properties must be used
-         *  - groupInfoPartData._partData: contains the primitive instances data to render
-         *  - partDataStartIndex: the index into instanceArrayData of the first instance to render.
-         *  - partDataCount: the number of primitive to render
-         */
-        useInstancing: boolean;
-        /**
-         * If specified, must take precedence from the groupInfoPartData. partIndex is the same as groupInfoPardData
-         */
-        instancedBuffers: WebGLBuffer[];
-        /**
-         * To use when instancedBuffers is specified, gives the count of instances to draw
-         */
-        instancesCount: number;
-        /**
-         * Contains the data related to the primitives instances to render
-         */
-        groupInfoPartData: GroupInfoPartData[];
-        /**
-         * The index into groupInfoPartData._partData of the first primitive to render. This is an index, not an offset: it represent the nth primitive which is the first to render.
-         */
-        partDataStartIndex: number;
-        /**
-         * The exclusive end index, you have to render the primitive instances until you reach this one, but don't render this one!
-         */
-        partDataEndIndex: number;
-        /**
-         * The set of primitives to render is opaque.
-         * This is the first rendering pass. All Opaque primitives are rendered. Depth Compare and Write are both enabled.
-         */
-        static RenderModeOpaque: number;
-        /**
-         * The set of primitives to render is using Alpha Test (aka masking).
-         * Alpha Blend is enabled, the AlphaMode must be manually set, the render occurs after the RenderModeOpaque and is depth independent (i.e. primitives are not sorted by depth). Depth Compare and Write are both enabled.
-         */
-        static RenderModeAlphaTest: number;
-        /**
-         * The set of primitives to render is transparent.
-         * Alpha Blend is enabled, the AlphaMode must be manually set, the render occurs after the RenderModeAlphaTest and is depth dependent (i.e. primitives are stored by depth and rendered back to front). Depth Compare is on, but Depth write is Off.
-         */
-        static RenderModeTransparent: number;
-        private static _renderModeOpaque;
-        private static _renderModeAlphaTest;
-        private static _renderModeTransparent;
-        private _renderMode;
-    }
-    /**
-     * This class store information for the pointerEventObservable Observable.
-     * The Observable is divided into many sub events (using the Mask feature of the Observable pattern): PointerOver, PointerEnter, PointerDown, PointerMouseWheel, PointerMove, PointerUp, PointerDown, PointerLeave, PointerGotCapture and PointerLostCapture.
-     */
-    class PrimitivePointerInfo {
-        private static _pointerOver;
-        private static _pointerEnter;
-        private static _pointerDown;
-        private static _pointerMouseWheel;
-        private static _pointerMove;
-        private static _pointerUp;
-        private static _pointerOut;
-        private static _pointerLeave;
-        private static _pointerGotCapture;
-        private static _pointerLostCapture;
-        private static _mouseWheelPrecision;
-        /**
-         * This event type is raised when a pointing device is moved into the hit test boundaries of a primitive.
-         * Bubbles: yes
-         */
-        static PointerOver: number;
-        /**
-         * This event type is raised when a pointing device is moved into the hit test boundaries of a primitive or one of its descendants.
-         * Bubbles: no
-         */
-        static PointerEnter: number;
-        /**
-         * This event type is raised when a pointer enters the active button state (non-zero value in the buttons property). For mouse it's when the device transitions from no buttons depressed to at least one button depressed. For touch/pen this is when a physical contact is made.
-         * Bubbles: yes
-         */
-        static PointerDown: number;
-        /**
-         * This event type is raised when the pointer is a mouse and it's wheel is rolling
-         * Bubbles: yes
-         */
-        static PointerMouseWheel: number;
-        /**
-         * This event type is raised when a pointer change coordinates or when a pointer changes button state, pressure, tilt, or contact geometry and the circumstances produce no other pointers events.
-         * Bubbles: yes
-         */
-        static PointerMove: number;
-        /**
-         * This event type is raised when the pointer leaves the active buttons states (zero value in the buttons property). For mouse, this is when the device transitions from at least one button depressed to no buttons depressed. For touch/pen, this is when physical contact is removed.
-         * Bubbles: yes
-         */
-        static PointerUp: number;
-        /**
-         * This event type is raised when a pointing device is moved out of the hit test the boundaries of a primitive.
-         * Bubbles: yes
-         */
-        static PointerOut: number;
-        /**
-         * This event type is raised when a pointing device is moved out of the hit test boundaries of a primitive and all its descendants.
-         * Bubbles: no
-         */
-        static PointerLeave: number;
-        /**
-         * This event type is raised when a primitive receives the pointer capture. This event is fired at the element that is receiving pointer capture. Subsequent events for that pointer will be fired at this element.
-         * Bubbles: yes
-         */
-        static PointerGotCapture: number;
-        /**
-         * This event type is raised after pointer capture is released for a pointer.
-         * Bubbles: yes
-         */
-        static PointerLostCapture: number;
-        static MouseWheelPrecision: number;
-        /**
-         * Event Type, one of the static PointerXXXX property defined above (PrimitivePointerInfo.PointerOver to PrimitivePointerInfo.PointerLostCapture)
-         */
-        eventType: number;
-        /**
-         * Position of the pointer relative to the bottom/left of the Canvas
-         */
-        canvasPointerPos: Vector2;
-        /**
-         * Position of the pointer relative to the bottom/left of the primitive that registered the Observer
-         */
-        primitivePointerPos: Vector2;
-        /**
-         * The primitive where the event was initiated first (in case of bubbling)
-         */
-        relatedTarget: Prim2DBase;
-        /**
-         * Position of the pointer relative to the bottom/left of the relatedTarget
-         */
-        relatedTargetPointerPos: Vector2;
-        /**
-         * An observable can set this property to true to stop bubbling on the upper levels
-         */
-        cancelBubble: boolean;
-        /**
-         * True if the Control keyboard key is down
-         */
-        ctrlKey: boolean;
-        /**
-         * true if the Shift keyboard key is down
-         */
-        shiftKey: boolean;
-        /**
-         * true if the Alt keyboard key is down
-         */
-        altKey: boolean;
-        /**
-         * true if the Meta keyboard key is down
-         */
-        metaKey: boolean;
-        /**
-         * For button, buttons, refer to https://www.w3.org/TR/pointerevents/#button-states
-         */
-        button: number;
-        /**
-         * For button, buttons, refer to https://www.w3.org/TR/pointerevents/#button-states
-         */
-        buttons: number;
-        /**
-         * The amount of mouse wheel rolled
-         */
-        mouseWheelDelta: number;
-        /**
-         * Id of the Pointer involved in the event
-         */
-        pointerId: number;
-        width: number;
-        height: number;
-        presssure: number;
-        tilt: Vector2;
-        /**
-         * true if the involved pointer is captured for a particular primitive, false otherwise.
-         */
-        isCaptured: boolean;
-        constructor();
-        updateRelatedTarget(prim: Prim2DBase, primPointerPos: Vector2): void;
-        static getEventTypeName(mask: number): string;
-    }
-    /**
-     * Defines the horizontal and vertical alignment information for a Primitive.
-     */
-    class PrimitiveAlignment {
-        constructor(changeCallback: () => void);
-        /**
-         * Alignment is made relative to the left edge of the Primitive. Valid for horizontal alignment only.
-         */
-        static AlignLeft: number;
-        /**
-         * Alignment is made relative to the top edge of the Primitive. Valid for vertical alignment only.
-         */
-        static AlignTop: number;
-        /**
-         * Alignment is made relative to the right edge of the Primitive. Valid for horizontal alignment only.
-         */
-        static AlignRight: number;
-        /**
-         * Alignment is made relative to the bottom edge of the Primitive. Valid for vertical alignment only.
-         */
-        static AlignBottom: number;
-        /**
-         * Alignment is made to center the content from equal distance to the opposite edges of the Primitive
-         */
-        static AlignCenter: number;
-        /**
-         * The content is stretched toward the opposite edges of the Primitive
-         */
-        static AlignStretch: number;
-        private static _AlignLeft;
-        private static _AlignTop;
-        private static _AlignRight;
-        private static _AlignBottom;
-        private static _AlignCenter;
-        private static _AlignStretch;
-        /**
-         * Get/set the horizontal alignment. Use one of the AlignXXX static properties of this class
-         */
-        horizontal: number;
-        /**
-         * Get/set the vertical alignment. Use one of the AlignXXX static properties of this class
-         */
-        vertical: number;
-        private _changedCallback;
-        private _horizontal;
-        private _vertical;
-        /**
-         * Set the horizontal alignment from a string value.
-         * @param text can be either: 'left','right','center','stretch'
-         */
-        setHorizontal(text: string): void;
-        /**
-         * Set the vertical alignment from a string value.
-         * @param text can be either: 'top','bottom','center','stretch'
-         */
-        setVertical(text: string): void;
-        /**
-         * Set the horizontal and or vertical alignments from a string value.
-         * @param text can be: [<h:|horizontal:><left|right|center|stretch>], [<v:|vertical:><top|bottom|center|stretch>]
-         */
-        fromString(value: string): void;
-    }
-    /**
-     * Stores information about a Primitive that was intersected
-     */
-    class PrimitiveIntersectedInfo {
-        prim: Prim2DBase;
-        intersectionLocation: Vector2;
-        constructor(prim: Prim2DBase, intersectionLocation: Vector2);
-    }
-    /**
-     * Define a thickness toward every edges of a Primitive to allow margin and padding.
-     * The thickness can be expressed as pixels, percentages, inherit the value of the parent primitive or be auto.
-     */
-    class PrimitiveThickness {
-        constructor(parentAccess: () => PrimitiveThickness, changedCallback: () => void);
-        /**
-         * Set the thickness from a string value
-         * @param thickness format is "top: <value>, left:<value>, right:<value>, bottom:<value>" or "<value>" (same for all edges) each are optional, auto will be set if it's omitted.
-         * Values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         */
-        fromString(thickness: string): void;
-        /**
-         * Set the thickness from multiple string
-         * Possible values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         * @param top the top thickness to set
-         * @param left the left thickness to set
-         * @param right the right thickness to set
-         * @param bottom the bottom thickness to set
-         */
-        fromStrings(top: string, left: string, right: string, bottom: string): PrimitiveThickness;
-        /**
-         * Set the thickness from pixel values
-         * @param top the top thickness in pixels to set
-         * @param left the left thickness in pixels to set
-         * @param right the right thickness in pixels to set
-         * @param bottom the bottom thickness in pixels to set
-         */
-        fromPixels(top: number, left: number, right: number, bottom: number): PrimitiveThickness;
-        /**
-         * Apply the same pixel value to all edges
-         * @param margin the value to set, in pixels.
-         */
-        fromUniformPixels(margin: number): PrimitiveThickness;
-        /**
-         * Set all edges in auto
-         */
-        auto(): PrimitiveThickness;
-        private _clear();
-        private _extractString(value, emitChanged);
-        private _setStringValue(value, index, emitChanged);
-        private _setPixels(value, index, emitChanged);
-        private _setPercentage(value, index, emitChanged);
-        private _getStringValue(index);
-        private _isType(index, type);
-        private _getType(index, processInherit);
-        private _setType(index, type);
-        setTop(value: number | string): void;
-        setLeft(value: number | string): void;
-        setRight(value: number | string): void;
-        setBottom(value: number | string): void;
-        /**
-         * Get/set the top thickness. Possible values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         */
-        top: string;
-        /**
-         * Get/set the left thickness. Possible values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         */
-        left: string;
-        /**
-         * Get/set the right thickness. Possible values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         */
-        right: string;
-        /**
-         * Get/set the bottom thickness. Possible values are: 'auto', 'inherit', 'XX%' for percentage, 'XXpx' or 'XX' for pixels.
-         */
-        bottom: string;
-        /**
-         * Get/set the top thickness in pixel.
-         */
-        topPixels: number;
-        /**
-         * Get/set the left thickness in pixel.
-         */
-        leftPixels: number;
-        /**
-         * Get/set the right thickness in pixel.
-         */
-        rightPixels: number;
-        /**
-         * Get/set the bottom thickness in pixel.
-         */
-        bottomPixels: number;
-        /**
-         * Get/set the top thickness in percentage.
-         * The get will return a valid value only if the edge type is percentage.
-         * The Set will change the edge mode if needed
-         */
-        topPercentage: number;
-        /**
-         * Get/set the left thickness in percentage.
-         * The get will return a valid value only if the edge mode is percentage.
-         * The Set will change the edge mode if needed
-         */
-        leftPercentage: number;
-        /**
-         * Get/set the right thickness in percentage.
-         * The get will return a valid value only if the edge mode is percentage.
-         * The Set will change the edge mode if needed
-         */
-        rightPercentage: number;
-        /**
-         * Get/set the bottom thickness in percentage.
-         * The get will return a valid value only if the edge mode is percentage.
-         * The Set will change the edge mode if needed
-         */
-        bottomPercentage: number;
-        /**
-         * Get/set the top mode. The setter shouldn't be used, other setters with value should be preferred
-         */
-        topMode: number;
-        /**
-         * Get/set the left mode. The setter shouldn't be used, other setters with value should be preferred
-         */
-        leftMode: number;
-        /**
-         * Get/set the right mode. The setter shouldn't be used, other setters with value should be preferred
-         */
-        rightMode: number;
-        /**
-         * Get/set the bottom mode. The setter shouldn't be used, other setters with value should be preferred
-         */
-        bottomMode: number;
-        private _parentAccess;
-        private _changedCallback;
-        private _pixels;
-        private _percentages;
-        private _flags;
-        static Auto: number;
-        static Inherit: number;
-        static Percentage: number;
-        static Pixel: number;
-        private _computePixels(index, sourceArea, emitChanged);
-        /**
-         * Compute the positioning/size of an area considering the thickness of this object and a given alignment
-         * @param sourceArea the source area
-         * @param contentSize the content size to position/resize
-         * @param alignment the alignment setting
-         * @param dstOffset the position of the content
-         * @param dstArea the new size of the content
-         */
-        computeWithAlignment(sourceArea: Size, contentSize: Size, alignment: PrimitiveAlignment, dstOffset: Vector2, dstArea: Size): void;
-        /**
-         * Compute an area and its position considering this thickness properties based on a given source area
-         * @param sourceArea the source area
-         * @param dstOffset the position of the resulting area
-         * @param dstArea the size of the resulting area
-         */
-        compute(sourceArea: Size, dstOffset: Vector2, dstArea: Size): void;
-        /**
-         * Compute an area considering this thickness properties based on a given source area
-         * @param sourceArea the source area
-         * @param result the resulting area
-         */
-        computeArea(sourceArea: Size, result: Size): void;
-        enlarge(sourceArea: Size, dstOffset: Vector2, enlargedArea: Size): void;
-    }
-    /**
-     * Main class used for the Primitive Intersection API
-     */
-    class IntersectInfo2D {
-        constructor();
-        /**
-         * Set the pick position, relative to the primitive where the intersection test is made
-         */
-        pickPosition: Vector2;
-        /**
-         * If true the intersection will stop at the first hit, if false all primitives will be tested and the intersectedPrimitives array will be filled accordingly (false default)
-         */
-        findFirstOnly: boolean;
-        /**
-         * If true the intersection test will also be made on hidden primitive (false default)
-         */
-        intersectHidden: boolean;
-        _globalPickPosition: Vector2;
-        _localPickPosition: Vector2;
-        /**
-         * The topmost intersected primitive
-         */
-        topMostIntersectedPrimitive: PrimitiveIntersectedInfo;
-        /**
-         * The array containing all intersected primitive, in no particular order.
-         */
-        intersectedPrimitives: Array<PrimitiveIntersectedInfo>;
-        /**
-         * true if at least one primitive intersected during the test
-         */
-        isIntersected: boolean;
-        isPrimIntersected(prim: Prim2DBase): Vector2;
-        _exit(firstLevel: boolean): void;
-    }
-    class Prim2DBase extends SmartPropertyPrim {
-        static PRIM2DBASE_PROPCOUNT: number;
-        static _bigInt: number;
-        constructor(settings: {
-            parent?: Prim2DBase;
-            id?: string;
-            children?: Array<Prim2DBase>;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            layoutEngine?: LayoutEngineBase | string;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        actionManager: ActionManager;
-        /**
-         * From 'this' primitive, traverse up (from parent to parent) until the given predicate is true
-         * @param predicate the predicate to test on each parent
-         * @return the first primitive where the predicate was successful
-         */
-        traverseUp(predicate: (p: Prim2DBase) => boolean): Prim2DBase;
-        /**
-         * Retrieve the owner Canvas2D
-         */
-        owner: Canvas2D;
-        /**
-         * Get the parent primitive (can be the Canvas, only the Canvas has no parent)
-         */
-        parent: Prim2DBase;
-        /**
-         * The array of direct children primitives
-         */
-        children: Prim2DBase[];
-        /**
-         * The identifier of this primitive, may not be unique, it's for information purpose only
-         */
-        id: string;
-        /**
-         * Metadata of the position property
-         */
-        static positionProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the actualPosition property
-         */
-        static actualPositionProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the size property
-         */
-        static sizeProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the rotation property
-         */
-        static rotationProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the scale property
-         */
-        static scaleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the origin property
-         */
-        static originProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the levelVisible property
-         */
-        static levelVisibleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the isVisible property
-         */
-        static isVisibleProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the zOrder property
-         */
-        static zOrderProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the margin property
-         */
-        static marginProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the margin property
-         */
-        static paddingProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the hAlignment property
-         */
-        static marginAlignmentProperty: Prim2DPropInfo;
-        /**
-         * Metadata of the opacity property
-         */
-        static opacityProperty: Prim2DPropInfo;
-        /**
-         * DO NOT INVOKE for internal purpose only
-         */
-        actualPosition: Vector2;
-        private static _nullPosition;
-        /**
-         * Shortcut to actualPosition.x
-         */
-        actualX: number;
-        /**
-         * Shortcut to actualPosition.y
-         */
-        actualY: number;
-        /**
-         * Position of the primitive, relative to its parent.
-         * BEWARE: if you change only position.x or y it won't trigger a property change and you won't have the expected behavior.
-         * Use this property to set a new Vector2 object, otherwise to change only the x/y use Prim2DBase.x or y properties.
-         * Setting this property may have no effect is specific alignment are in effect.
-         */
-        position: Vector2;
-        /**
-         * Direct access to the position.x value of the primitive
-         * Use this property when you only want to change one component of the position property
-         */
-        x: number;
-        /**
-         * Direct access to the position.y value of the primitive
-         * Use this property when you only want to change one component of the position property
-         */
-        y: number;
-        private static boundinbBoxReentrency;
-        protected static nullSize: Size;
-        /**
-         * Size of the primitive or its bounding area
-         * BEWARE: if you change only size.width or height it won't trigger a property change and you won't have the expected behavior.
-         * Use this property to set a new Size object, otherwise to change only the width/height use Prim2DBase.width or height properties.
-         */
-        size: Size;
-        /**
-         * Direct access to the size.width value of the primitive
-         * Use this property when you only want to change one component of the size property
-         */
-        width: number;
-        /**
-         * Direct access to the size.height value of the primitive
-         * Use this property when you only want to change one component of the size property
-         */
-        height: number;
-        rotation: number;
-        scale: number;
-        /**
-         * Return the size of the primitive as it's being rendered into the target.
-         * This value may be different of the size property when layout/alignment is used or specific primitive types can implement a custom logic through this property.
-         * BEWARE: don't use the setter, it's for internal purpose only
-         * Note to implementers: you have to override this property and declare if necessary a @xxxxInstanceLevel decorator
-         */
-        actualSize: Size;
-        actualZOffset: number;
-        /**
-         * Get or set the minimal size the Layout Engine should respect when computing the primitive's actualSize.
-         * The Primitive's size won't be less than specified.
-         * The default value depends of the Primitive type
-         */
-        minSize: Size;
-        /**
-         * Get or set the maximal size the Layout Engine should respect when computing the primitive's actualSize.
-         * The Primitive's size won't be more than specified.
-         * The default value depends of the Primitive type
-         */
-        maxSize: Size;
-        /**
-         * The origin defines the normalized coordinate of the center of the primitive, from the bottom/left corner.
-         * The origin is used only to compute transformation of the primitive, it has no meaning in the primitive local frame of reference
-         * For instance:
-         * 0,0 means the center is bottom/left. Which is the default for Canvas2D instances
-         * 0.5,0.5 means the center is at the center of the primitive, which is default of all types of Primitives
-         * 0,1 means the center is top/left
-         * @returns The normalized center.
-         */
-        origin: Vector2;
-        levelVisible: boolean;
-        isVisible: boolean;
-        zOrder: number;
-        isManualZOrder: boolean;
-        margin: PrimitiveThickness;
-        private _hasMargin;
-        padding: PrimitiveThickness;
-        private _hasPadding;
-        marginAlignment: PrimitiveAlignment;
-        opacity: number;
-        actualOpacity: number;
-        /**
-         * Get/set the layout engine to use for this primitive.
-         * The default layout engine is the CanvasLayoutEngine.
-         */
-        layoutEngine: LayoutEngineBase;
-        /**
-         * Get/set the layout are of this primitive.
-         * The Layout area is the zone allocated by the Layout Engine for this particular primitive. Margins/Alignment will be computed based on this area.
-         * The setter should only be called by a Layout Engine class.
-         */
-        layoutArea: Size;
-        /**
-         * Get/set the layout area position (relative to the parent primitive).
-         * The setter should only be called by a Layout Engine class.
-         */
-        layoutAreaPos: Vector2;
-        /**
-         * Define if the Primitive can be subject to intersection test or not (default is true)
-         */
-        isPickable: boolean;
-        /**
-         * Return the depth level of the Primitive into the Canvas' Graph. A Canvas will be 0, its direct children 1, and so on.
-         */
-        hierarchyDepth: number;
-        /**
-         * Retrieve the Group that is responsible to render this primitive
-         */
-        renderGroup: Group2D;
-        /**
-         * Get the global transformation matrix of the primitive
-         */
-        globalTransform: Matrix;
-        /**
-         * return the global position of the primitive, relative to its canvas
-         */
-        getGlobalPosition(): Vector2;
-        /**
-         * return the global position of the primitive, relative to its canvas
-         * @param v the valid Vector2 object where the global position will be stored
-         */
-        getGlobalPositionByRef(v: Vector2): void;
-        /**
-         * Get invert of the global transformation matrix of the primitive
-         */
-        invGlobalTransform: Matrix;
-        /**
-         * Get the local transformation of the primitive
-         */
-        localTransform: Matrix;
-        private static _bMax;
-        /**
-         * Get the boundingInfo associated to the primitive and its children.
-         * The value is supposed to be always up to date
-         */
-        boundingInfo: BoundingInfo2D;
-        /**
-         * Determine if the size is automatically computed or fixed because manually specified.
-         * Use the actualSize property to get the final/real size of the primitive
-         * @returns true if the size is automatically computed, false if it were manually specified.
-         */
-        isSizeAuto: boolean;
-        /**
-         * Return true if this prim has an auto size which is set by the children's global bounding box
-         */
-        isSizedByContent: boolean;
-        /**
-         * Determine if the position is automatically computed or fixed because manually specified.
-         * Use the actualPosition property to get the final/real position of the primitive
-         * @returns true if the position is automatically computed, false if it were manually specified.
-         */
-        isPositionAuto: boolean;
-        /**
-         * Interaction with the primitive can be create using this Observable. See the PrimitivePointerInfo class for more information
-         */
-        pointerEventObservable: Observable<PrimitivePointerInfo>;
-        zActualOrderChangedObservable: Observable<number>;
-        findById(id: string): Prim2DBase;
-        protected onZOrderChanged(): void;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        /**
-         * Capture all the Events of the given PointerId for this primitive.
-         * Don't forget to call releasePointerEventsCapture when done.
-         * @param pointerId the Id of the pointer to capture the events from.
-         */
-        setPointerEventCapture(pointerId: number): boolean;
-        /**
-         * Release a captured pointer made with setPointerEventCapture.
-         * @param pointerId the Id of the pointer to release the capture from.
-         */
-        releasePointerEventsCapture(pointerId: number): boolean;
-        /**
-         * Make an intersection test with the primitive, all inputs/outputs are stored in the IntersectInfo2D class, see its documentation for more information.
-         * @param intersectInfo contains the settings of the intersection to perform, to setup before calling this method as well as the result, available after a call to this method.
-         */
-        intersect(intersectInfo: IntersectInfo2D): boolean;
-        moveChild(child: Prim2DBase, previous: Prim2DBase): boolean;
-        private addChild(child);
-        /**
-         * Dispose the primitive, remove it from its parent.
-         */
-        dispose(): boolean;
-        protected onPrimBecomesDirty(): void;
-        _needPrepare(): boolean;
-        _prepareRender(context: PrepareRender2DContext): void;
-        _prepareRenderPre(context: PrepareRender2DContext): void;
-        _prepareRenderPost(context: PrepareRender2DContext): void;
-        protected _canvasPreInit(settings: any): void;
-        protected static _isCanvasInit: boolean;
-        protected static CheckParent(parent: Prim2DBase): void;
-        protected updateCachedStatesOf(list: Prim2DBase[], recurse: boolean): void;
-        private _parentLayoutDirty();
-        protected _setLayoutDirty(): void;
-        private _checkPositionChange();
-        protected _positioningDirty(): void;
-        protected _spreadActualOpacityChanged(): void;
-        private _changeLayoutEngine(engine);
-        private static _t0;
-        private static _t1;
-        private static _t2;
-        private static _v0;
-        private _updateLocalTransform();
-        private static _transMtx;
-        protected updateCachedStates(recurse: boolean): void;
-        private static _icPos;
-        private static _icArea;
-        private static _size;
-        private _updatePositioning();
-        /**
-         * Get the content are of this primitive, this area is computed using the padding property and also possibly the primitive type itself.
-         * Children of this primitive will be positioned relative to the bottom/left corner of this area.
-         */
-        contentArea: Size;
-        _patchHierarchy(owner: Canvas2D): void;
-        private static _zOrderChangedNotifList;
-        private static _zRebuildReentrency;
-        private _updateZOrder();
-        private static _totalCount;
-        private _updatePrimitiveLinearPosition(prevLinPos);
-        private _updatePrimitiveZOrder(startPos, startZ, deltaZ);
-        private _updatePrimitiveFlatZOrder(newZ);
-        private _setZOrder(newZ, directEmit);
-        protected _updateRenderMode(): void;
-        /**
-         * This method is used to alter the contentArea of the Primitive before margin is applied.
-         * In most of the case you won't need to override this method, but it can prove some usefulness, check the Rectangle2D class for a concrete application.
-         * @param primSize the current size of the primitive
-         * @param initialContentPosition the position of the initial content area to compute, a valid object is passed, you have to set its properties. PLEASE ROUND the values, we're talking about pixels and fraction of them is not a good thing!
-         * @param initialContentArea the size of the initial content area to compute, a valid object is passed, you have to set its properties. PLEASE ROUND the values, we're talking about pixels and fraction of them is not a good thing!
-         */
-        protected _getInitialContentAreaToRef(primSize: Size, initialContentPosition: Vector2, initialContentArea: Size): void;
-        /**
-         * This method is used to calculate the new size of the primitive based on the content which must stay the same
-         * Check the Rectangle2D implementation for a concrete application.
-         * @param primSize the current size of the primitive
-         * @param newPrimSize the new size of the primitive. PLEASE ROUND THE values, we're talking about pixels and fraction of them are not our friends!
-         */
-        protected _getActualSizeFromContentToRef(primSize: Size, newPrimSize: Size): void;
-        private _owner;
-        private _parent;
-        private _actionManager;
-        protected _children: Array<Prim2DBase>;
-        private _renderGroup;
-        protected _hierarchyDepth: number;
-        protected _zOrder: number;
-        private _manualZOrder;
-        protected _zMax: number;
-        private _firstZDirtyIndex;
-        private _primLinearPosition;
-        private _margin;
-        private _padding;
-        private _marginAlignment;
-        _pointerEventObservable: Observable<PrimitivePointerInfo>;
-        private _actualZOrderChangedObservable;
-        private _id;
-        private _position;
-        private _actualPosition;
-        protected _size: Size;
-        protected _actualSize: Size;
-        _boundingSize: Size;
-        protected _minSize: Size;
-        protected _maxSize: Size;
-        protected _desiredSize: Size;
-        private _layoutEngine;
-        private _marginOffset;
-        private _paddingOffset;
-        private _parentPaddingOffset;
-        private _parentContentArea;
-        private _lastAutoSizeArea;
-        private _layoutAreaPos;
-        private _layoutArea;
-        private _contentArea;
-        private _rotation;
-        private _scale;
-        private _origin;
-        protected _opacity: number;
-        private _actualOpacity;
-        protected _parentTransformStep: number;
-        protected _globalTransformStep: number;
-        protected _globalTransformProcessStep: number;
-        protected _localTransform: Matrix;
-        protected _globalTransform: Matrix;
-        protected _invGlobalTransform: Matrix;
-    }
-}
-
-declare module BABYLON {
-    class Rectangle2DRenderCache extends ModelRenderCache {
-        effectsReady: boolean;
-        fillVB: WebGLBuffer;
-        fillIB: WebGLBuffer;
-        fillIndicesCount: number;
-        instancingFillAttributes: InstancingAttributeInfo[];
-        effectFill: Effect;
-        effectFillInstanced: Effect;
-        borderVB: WebGLBuffer;
-        borderIB: WebGLBuffer;
-        borderIndicesCount: number;
-        instancingBorderAttributes: InstancingAttributeInfo[];
-        effectBorder: Effect;
-        effectBorderInstanced: Effect;
-        constructor(engine: Engine, modelKey: string);
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Rectangle2DInstanceData extends Shape2DInstanceData {
-        constructor(partId: number);
-        properties: Vector3;
-    }
-    class Rectangle2D extends Shape2D {
-        static actualSizeProperty: Prim2DPropInfo;
-        static notRoundedProperty: Prim2DPropInfo;
-        static roundRadiusProperty: Prim2DPropInfo;
-        actualSize: Size;
-        notRounded: boolean;
-        roundRadius: number;
-        private static _i0;
-        private static _i1;
-        private static _i2;
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Create an Rectangle 2D Shape primitive. May be a sharp rectangle (with sharp corners), or a rounded one.
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y settings can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - size: the size of the group. Alternatively the width and height settings can be set. Default will be [10;10].
-         * - roundRadius: if the rectangle has rounded corner, set their radius, default is 0 (to get a sharp edges rectangle).
-         * - fill: the brush used to draw the fill content of the rectangle, you can set null to draw nothing (but you will have to set a border brush), default is a SolidColorBrush of plain white. can also be a string value (see Canvas2D.GetBrushFromString)
-         * - border: the brush used to draw the border of the rectangle, you can set null to draw nothing (but you will have to set a fill brush), default is null. can also be a string value (see Canvas2D.GetBrushFromString)
-         * - borderThickness: the thickness of the drawn border, default is 1.
-         * - isVisible: true if the primitive must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            size?: Size;
-            width?: number;
-            height?: number;
-            roundRadius?: number;
-            fill?: IBrush2D | string;
-            border?: IBrush2D | string;
-            borderThickness?: number;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        static roundSubdivisions: number;
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Rectangle2DRenderCache;
-        protected _getInitialContentAreaToRef(primSize: Size, initialContentPosition: Vector2, initialContentArea: Size): void;
-        protected _getActualSizeFromContentToRef(primSize: Size, newPrimSize: Size): void;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _notRounded;
-        private _roundRadius;
-    }
-}
-
-declare module BABYLON {
-    class InstanceClassInfo {
-        constructor(base: InstanceClassInfo);
-        mapProperty(propInfo: InstancePropInfo, push: boolean): void;
-        getInstancingAttributeInfos(effect: Effect, categories: string[]): InstancingAttributeInfo[];
-        getShaderAttributes(categories: string[]): string[];
-        private _getBaseOffset(categories);
-        static _CurCategories: string;
-        private _baseInfo;
-        private _nextOffset;
-        private _attributes;
-    }
-    class InstancePropInfo {
-        attributeName: string;
-        category: string;
-        size: number;
-        shaderOffset: number;
-        instanceOffset: StringDictionary<number>;
-        dataType: ShaderDataType;
-        delimitedCategory: string;
-        constructor();
-        setSize(val: any): void;
-        writeData(array: Float32Array, offset: number, val: any): void;
-    }
-    function instanceData<T>(category?: string, shaderAttributeName?: string): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    class InstanceDataBase {
-        constructor(partId: number, dataElementCount: number);
-        id: number;
-        isVisible: boolean;
-        zBias: Vector2;
-        transformX: Vector4;
-        transformY: Vector4;
-        opacity: number;
-        getClassTreeInfo(): ClassTreeInfo<InstanceClassInfo, InstancePropInfo>;
-        allocElements(): void;
-        freeElements(): void;
-        dataElementCount: number;
-        arrayLengthChanged: boolean;
-        curElement: number;
-        renderMode: number;
-        dataElements: DynamicFloatArrayElementInfo[];
-        dataBuffer: DynamicFloatArray;
-        typeInfo: ClassTreeInfo<InstanceClassInfo, InstancePropInfo>;
-        private _dataElementCount;
-    }
-    abstract class RenderablePrim2D extends Prim2DBase {
-        static RENDERABLEPRIM2D_PROPCOUNT: number;
-        static isAlphaTestProperty: Prim2DPropInfo;
-        static isTransparentProperty: Prim2DPropInfo;
-        isAlphaTest: boolean;
-        isTransparent: boolean;
-        renderMode: number;
-        constructor(settings?: {
-            parent?: Prim2DBase;
-            id?: string;
-            origin?: Vector2;
-            isVisible?: boolean;
-        });
-        /**
-         * Dispose the primitive and its resources, remove it from its parent
-         */
-        dispose(): boolean;
-        _prepareRenderPre(context: PrepareRender2DContext): void;
-        private _createModelRenderCache();
-        private _createModelDataParts();
-        private _setupModelRenderCache(parts);
-        protected onZOrderChanged(): void;
-        private _updateInstanceDataParts(gii);
-        _updateTransparentSegmentIndices(ts: TransparentSegment): void;
-        _getPrimitiveLastIndex(): number;
-        _getNextPrimZOrder(): number;
-        _getPrevPrimZOrder(): number;
-        /**
-         * Transform a given point using the Primitive's origin setting.
-         * This method requires the Primitive's actualSize to be accurate
-         * @param p the point to transform
-         * @param originOffset an offset applied on the current origin before performing the transformation. Depending on which frame of reference your data is expressed you may have to apply a offset. (if you data is expressed from the bottom/left, no offset is required. If it's expressed from the center the a [-0.5;-0.5] offset has to be applied.
-         * @param res an allocated Vector2 that will receive the transformed content
-         */
-        protected transformPointWithOriginByRef(p: Vector2, originOffset: Vector2, res: Vector2): void;
-        protected transformPointWithOriginToRef(p: Vector2, originOffset: Vector2, res: Vector2): Vector2;
-        /**
-         * Get the info for a given effect based on the dataPart metadata
-         * @param dataPartId partId in part list to get the info
-         * @param vertexBufferAttributes vertex buffer attributes to manually add
-         * @param useInstanced specified if Instanced Array should be used, if null the engine caps will be used (so true if WebGL supports it, false otherwise), but you have the possibility to override the engine capability. However, if you manually set true but the engine does not support Instanced Array, this method will return null
-         */
-        protected getDataPartEffectInfo(dataPartId: number, vertexBufferAttributes: string[], useInstanced?: boolean): {
-            attributes: string[];
-            uniforms: string[];
-            defines: string;
-        };
-        protected modelRenderCache: ModelRenderCache;
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): void;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected beforeRefreshForLayoutConstruction(part: InstanceDataBase): any;
-        protected afterRefreshForLayoutConstruction(part: InstanceDataBase, obj: any): void;
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        /**
-         * Update the instanceDataBase level properties of a part
-         * @param part the part to update
-         * @param positionOffset to use in multi part per primitive (e.g. the Text2D has N parts for N letter to display), this give the offset to apply (e.g. the position of the letter from the bottom/left corner of the text).
-         */
-        protected updateInstanceDataPart(part: InstanceDataBase, positionOffset?: Vector2): void;
-        protected _updateRenderMode(): void;
-        private _modelRenderCache;
-        private _modelRenderInstanceID;
-        private _transparentPrimitiveInfo;
-        protected _instanceDataParts: InstanceDataBase[];
-        protected _isAlphaTest: boolean;
-        protected _isTransparent: boolean;
-        private _renderMode;
-    }
-}
-
-declare module BABYLON {
-    abstract class Shape2D extends RenderablePrim2D {
-        static SHAPE2D_BORDERPARTID: number;
-        static SHAPE2D_FILLPARTID: number;
-        static SHAPE2D_CATEGORY_BORDER: string;
-        static SHAPE2D_CATEGORY_BORDERSOLID: string;
-        static SHAPE2D_CATEGORY_BORDERGRADIENT: string;
-        static SHAPE2D_CATEGORY_FILLSOLID: string;
-        static SHAPE2D_CATEGORY_FILLGRADIENT: string;
-        static SHAPE2D_PROPCOUNT: number;
-        static borderProperty: Prim2DPropInfo;
-        static fillProperty: Prim2DPropInfo;
-        static borderThicknessProperty: Prim2DPropInfo;
-        border: IBrush2D;
-        /**
-         * Get/set the brush to render the Fill part of the Primitive
-         */
-        fill: IBrush2D;
-        borderThickness: number;
-        constructor(settings?: {
-            fill?: IBrush2D | string;
-            border?: IBrush2D | string;
-            borderThickness?: number;
-        });
-        protected getUsedShaderCategories(dataPart: InstanceDataBase): string[];
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _updateTransparencyStatus();
-        private _border;
-        private _borderThickness;
-        private _fill;
-    }
-    class Shape2DInstanceData extends InstanceDataBase {
-        fillSolidColor: Color4;
-        fillGradientColor1: Color4;
-        fillGradientColor2: Color4;
-        fillGradientTY: Vector4;
-        borderThickness: number;
-        borderSolidColor: Color4;
-        borderGradientColor1: Color4;
-        borderGradientColor2: Color4;
-        borderGradientTY: Vector4;
-    }
-}
-
-declare module BABYLON {
-    class Prim2DClassInfo {
-    }
-    class Prim2DPropInfo {
-        static PROPKIND_MODEL: number;
-        static PROPKIND_INSTANCE: number;
-        static PROPKIND_DYNAMIC: number;
-        id: number;
-        flagId: number;
-        kind: number;
-        name: string;
-        dirtyBoundingInfo: boolean;
-        dirtyParentBoundingInfo: boolean;
-        typeLevelCompare: boolean;
-    }
-    /**
-     * Custom type of the propertyChanged observable
-     */
-    class PropertyChangedInfo {
-        /**
-         * Previous value of the property
-         */
-        oldValue: any;
-        /**
-         * New value of the property
-         */
-        newValue: any;
-        /**
-         * Name of the property that changed its value
-         */
-        propertyName: string;
-    }
-    /**
-     * Property Changed interface
-     */
-    interface IPropertyChanged {
-        /**
-         * PropertyChanged observable
-         */
-        propertyChanged: Observable<PropertyChangedInfo>;
-    }
-    class ClassTreeInfo<TClass, TProp> {
-        constructor(baseClass: ClassTreeInfo<TClass, TProp>, type: Object, classContentFactory: (base: TClass) => TClass);
-        classContent: TClass;
-        type: Object;
-        levelContent: StringDictionary<TProp>;
-        fullContent: StringDictionary<TProp>;
-        getLevelOf(type: Object): ClassTreeInfo<TClass, TProp>;
-        getOrAddType(baseType: Object, type: Object): ClassTreeInfo<TClass, TProp>;
-        static get<TClass, TProp>(type: Object): ClassTreeInfo<TClass, TProp>;
-        static getOrRegister<TClass, TProp>(type: Object, classContentFactory: (base: TClass) => TClass): ClassTreeInfo<TClass, TProp>;
-        private _type;
-        private _classContent;
-        private _baseClass;
-        private _subClasses;
-        private _levelContent;
-        private _fullContent;
-        private _classContentFactory;
-    }
-    abstract class SmartPropertyPrim implements IPropertyChanged {
-        constructor();
-        /**
-         * An observable that is triggered when a property (using of the XXXXLevelProperty decorator) has its value changing.
-         * You can add an observer that will be triggered only for a given set of Properties using the Mask feature of the Observable and the corresponding Prim2DPropInfo.flagid value (e.g. Prim2DBase.positionProperty.flagid|Prim2DBase.rotationProperty.flagid to be notified only about position or rotation change)
-         */
-        propertyChanged: Observable<PropertyChangedInfo>;
-        /**
-         * Check if the object is disposed or not.
-         * @returns true if the object is dispose, false otherwise.
-         */
-        isDisposed: boolean;
-        /**
-         * Disposable pattern, this method must be overloaded by derived types in order to clean up hardware related resources.
-         * @returns false if the object is already dispose, true otherwise. Your implementation must call super.dispose() and check for a false return and return immediately if it's the case.
-         */
-        dispose(): boolean;
-        /**
-         * Animation array, more info: http://doc.babylonjs.com/tutorials/Animations
-         */
-        animations: Animation[];
-        /**
-         * Returns as a new array populated with the Animatable used by the primitive. Must be overloaded by derived primitives.
-         * Look at Sprite2D for more information
-         */
-        getAnimatables(): IAnimatable[];
-        /**
-         * Property giving the Model Key associated to the property.
-         * This value is constructed from the type of the primitive and all the name/value of its properties declared with the modelLevelProperty decorator
-         * @returns the model key string.
-         */
-        modelKey: string;
-        /**
-         * States if the Primitive is dirty and should be rendered again next time.
-         * @returns true is dirty, false otherwise
-         */
-        isDirty: boolean;
-        /**
-         * Access the dictionary of properties metadata. Only properties decorated with XXXXLevelProperty are concerned
-         * @returns the dictionary, the key is the property name as declared in Javascript, the value is the metadata object
-         */
-        private propDic;
-        private static _createPropInfo(target, propName, propId, dirtyBoundingInfo, dirtyParentBoundingBox, typeLevelCompare, kind);
-        private static _checkUnchanged(curValue, newValue);
-        private static propChangedInfo;
-        markAsDirty(propertyName: string): void;
-        protected _boundingBoxDirty(): void;
-        private _handlePropChanged<T>(curValue, newValue, propName, propInfo, typeLevelCompare);
-        protected onPrimitivePropertyDirty(propFlagId: number): void;
-        protected handleGroupChanged(prop: Prim2DPropInfo): void;
-        /**
-         * Check if a given set of properties are dirty or not.
-         * @param flags a ORed combination of Prim2DPropInfo.flagId values
-         * @return true if at least one property is dirty, false if none of them are.
-         */
-        checkPropertiesDirty(flags: number): boolean;
-        /**
-         * Clear a given set of properties.
-         * @param flags a ORed combination of Prim2DPropInfo.flagId values
-         * @return the new set of property still marked as dirty
-         */
-        protected clearPropertiesDirty(flags: number): number;
-        _resetPropertiesDirty(): void;
-        /**
-         * Retrieve the boundingInfo for this Primitive, computed based on the primitive itself and NOT its children
-         */
-        levelBoundingInfo: BoundingInfo2D;
-        /**
-         * This method must be overridden by a given Primitive implementation to compute its boundingInfo
-         */
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Property method called when the Primitive becomes dirty
-         */
-        protected onPrimBecomesDirty(): void;
-        static _hookProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare: boolean, dirtyBoundingInfo: boolean, dirtyParentBoundingBox: boolean, kind: number): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-        /**
-         * Add an externally attached data from its key.
-         * This method call will fail and return false, if such key already exists.
-         * If you don't care and just want to get the data no matter what, use the more convenient getOrAddExternalDataWithFactory() method.
-         * @param key the unique key that identifies the data
-         * @param data the data object to associate to the key for this Engine instance
-         * @return true if no such key were already present and the data was added successfully, false otherwise
-         */
-        addExternalData<T>(key: string, data: T): boolean;
-        /**
-         * Get an externally attached data from its key
-         * @param key the unique key that identifies the data
-         * @return the associated data, if present (can be null), or undefined if not present
-         */
-        getExternalData<T>(key: string): T;
-        /**
-         * Get an externally attached data from its key, create it using a factory if it's not already present
-         * @param key the unique key that identifies the data
-         * @param factory the factory that will be called to create the instance if and only if it doesn't exists
-         * @return the associated data, can be null if the factory returned null.
-         */
-        getOrAddExternalDataWithFactory<T>(key: string, factory: (k: string) => T): T;
-        /**
-         * Remove an externally attached data from the Engine instance
-         * @param key the unique key that identifies the data
-         * @return true if the data was successfully removed, false if it doesn't exist
-         */
-        removeExternalData(key: any): boolean;
-        /**
-         * Check if a given flag is set
-         * @param flag the flag value
-         * @return true if set, false otherwise
-         */
-        _isFlagSet(flag: number): boolean;
-        /**
-         * Check if all given flags are set
-         * @param flags the flags ORed
-         * @return true if all the flags are set, false otherwise
-         */
-        _areAllFlagsSet(flags: number): boolean;
-        /**
-         * Check if at least one flag of the given flags is set
-         * @param flags the flags ORed
-         * @return true if at least one flag is set, false otherwise
-         */
-        _areSomeFlagsSet(flags: number): boolean;
-        /**
-         * Clear the given flags
-         * @param flags the flags to clear
-         */
-        _clearFlags(flags: number): void;
-        /**
-         * Set the given flags to true state
-         * @param flags the flags ORed to set
-         * @return the flags state before this call
-         */
-        _setFlags(flags: number): number;
-        /**
-         * Change the state of the given flags
-         * @param flags the flags ORed to change
-         * @param state true to set them, false to clear them
-         */
-        _changeFlags(flags: number, state: boolean): void;
-        static flagIsDisposed: number;
-        static flagLevelBoundingInfoDirty: number;
-        static flagModelDirty: number;
-        static flagLayoutDirty: number;
-        static flagLevelVisible: number;
-        static flagBoundingInfoDirty: number;
-        static flagIsPickable: number;
-        static flagIsVisible: number;
-        static flagVisibilityChanged: number;
-        static flagPositioningDirty: number;
-        static flagTrackedGroup: number;
-        static flagWorldCacheChanged: number;
-        static flagChildrenFlatZOrder: number;
-        static flagZOrderDirty: number;
-        static flagActualOpacityDirty: number;
-        static flagPrimInDirtyList: number;
-        private _flags;
-        private _externalData;
-        private _modelKey;
-        private _propInfo;
-        protected _levelBoundingInfo: BoundingInfo2D;
-        protected _boundingInfo: BoundingInfo2D;
-        protected _instanceDirtyFlags: number;
-    }
-    function modelLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean, dirtyParentBoundingBox?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    function instanceLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean, dirtyParentBoundingBox?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-    function dynamicLevelProperty<T>(propId: number, piStore: (pi: Prim2DPropInfo) => void, typeLevelCompare?: boolean, dirtyBoundingInfo?: boolean, dirtyParentBoundingBox?: boolean): (target: Object, propName: string | symbol, descriptor: TypedPropertyDescriptor<T>) => void;
-}
-
-declare module BABYLON {
-    class Sprite2DRenderCache extends ModelRenderCache {
-        effectsReady: boolean;
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-        texture: Texture;
-        effect: Effect;
-        effectInstanced: Effect;
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Sprite2DInstanceData extends InstanceDataBase {
-        constructor(partId: number);
-        topLeftUV: Vector2;
-        sizeUV: Vector2;
-        textureSize: Vector2;
-        properties: Vector3;
-    }
-    class Sprite2D extends RenderablePrim2D {
-        static SPRITE2D_MAINPARTID: number;
-        static textureProperty: Prim2DPropInfo;
-        static actualSizeProperty: Prim2DPropInfo;
-        static spriteLocationProperty: Prim2DPropInfo;
-        static spriteFrameProperty: Prim2DPropInfo;
-        static invertYProperty: Prim2DPropInfo;
-        static alignToPixelProperty: Prim2DPropInfo;
-        texture: Texture;
-        actualSize: Size;
-        spriteLocation: Vector2;
-        spriteFrame: number;
-        invertY: boolean;
-        /**
-         * Get/set if the sprite rendering should be aligned to the target rendering device pixel or not
-         */
-        alignToPixel: boolean;
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Get the animatable array (see http://doc.babylonjs.com/tutorials/Animations)
-         */
-        getAnimatables(): IAnimatable[];
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        /**
-         * Create an 2D Sprite primitive
-         * @param texture the texture that stores the sprite to render
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - spriteSize: the size of the sprite (in pixels), if null the size of the given texture will be used, default is null.
-         * - spriteLocation: the location (in pixels) in the texture of the top/left corner of the Sprite to display, default is null (0,0)
-         * - invertY: if true the texture Y will be inverted, default is false.
-         * - alignToPixel: if true the sprite's texels will be aligned to the rendering viewport pixels, ensuring the best rendering quality but slow animations won't be done as smooth as if you set false. If false a texel could lies between two pixels, being blended by the texture sampling mode you choose, the rendering result won't be as good, but very slow animation will be overall better looking. Default is true: content will be aligned.
-         * - isVisible: true if the sprite must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(texture: Texture, settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            spriteSize?: Size;
-            spriteLocation?: Vector2;
-            invertY?: boolean;
-            alignToPixel?: boolean;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        static _createCachedCanvasSprite(owner: Canvas2D, texture: MapTexture, size: Size, pos: Vector2): Sprite2D;
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Sprite2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        private static _prop;
-        private static layoutConstructMode;
-        protected beforeRefreshForLayoutConstruction(part: InstanceDataBase): any;
-        protected afterRefreshForLayoutConstruction(part: InstanceDataBase, obj: any): void;
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _texture;
-        private _location;
-        private _spriteFrame;
-        private _invertY;
-        private _alignToPixel;
-    }
-}
-
-declare module BABYLON {
-    class Text2DRenderCache extends ModelRenderCache {
-        effectsReady: boolean;
-        vb: WebGLBuffer;
-        ib: WebGLBuffer;
-        instancingAttributes: InstancingAttributeInfo[];
-        fontTexture: FontTexture;
-        effect: Effect;
-        effectInstanced: Effect;
-        render(instanceInfo: GroupInstanceInfo, context: Render2DContext): boolean;
-        dispose(): boolean;
-    }
-    class Text2DInstanceData extends InstanceDataBase {
-        constructor(partId: number, dataElementCount: number);
-        topLeftUV: Vector2;
-        sizeUV: Vector2;
-        textureSize: Vector2;
-        color: Color4;
-        superSampleFactor: number;
-    }
-    class Text2D extends RenderablePrim2D {
-        static TEXT2D_MAINPARTID: number;
-        static fontProperty: Prim2DPropInfo;
-        static defaultFontColorProperty: Prim2DPropInfo;
-        static textProperty: Prim2DPropInfo;
-        static sizeProperty: Prim2DPropInfo;
-        fontName: string;
-        defaultFontColor: Color4;
-        text: string;
-        size: Size;
-        /**
-         * Get the actual size of the Text2D primitive
-         */
-        actualSize: Size;
-        /**
-         * Get the area that bounds the text associated to the primitive
-         */
-        textSize: Size;
-        protected fontTexture: FontTexture;
-        /**
-         * Dispose the primitive, remove it from its parent
-         */
-        dispose(): boolean;
-        protected updateLevelBoundingInfo(): void;
-        /**
-         * Create a Text primitive
-         * @param text the text to display
-         * @param settings a combination of settings, possible ones are
-         * - parent: the parent primitive/canvas, must be specified if the primitive is not constructed as a child of another one (i.e. as part of the children array setting)
-         * - children: an array of direct children
-         * - id a text identifier, for information purpose
-         * - position: the X & Y positions relative to its parent. Alternatively the x and y properties can be set. Default is [0;0]
-         * - rotation: the initial rotation (in radian) of the primitive. default is 0
-         * - scale: the initial scale of the primitive. default is 1
-         * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
-         * - origin: define the normalized origin point location, default [0.5;0.5]
-         * - fontName: the name/size/style of the font to use, following the CSS notation. Default is "12pt Arial".
-         * - fontSuperSample: if true the text will be rendered with a superSampled font (the font is twice the given size). Use this settings if the text lies in world space or if it's scaled in.
-         * - defaultColor: the color by default to apply on each letter of the text to display, default is plain white.
-         * - areaSize: the size of the area in which to display the text, default is auto-fit from text content.
-         * - tabulationSize: number of space character to insert when a tabulation is encountered, default is 4
-         * - isVisible: true if the text must be visible, false for hidden. Default is true.
-         * - childrenFlatZOrder: if true all the children (direct and indirect) will share the same Z-Order. Use this when there's a lot of children which don't overlap. The drawing order IS NOT GUARANTED!
-         * - marginTop: top margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginLeft: left margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginRight: right margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - marginBottom: bottom margin, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - margin: top, left, right and bottom margin formatted as a single string (see PrimitiveThickness.fromString)
-         * - marginHAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginVAlignment: one value of the PrimitiveAlignment type's static properties
-         * - marginAlignment: a string defining the alignment, see PrimitiveAlignment.fromString
-         * - paddingTop: top padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingLeft: left padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingRight: right padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - paddingBottom: bottom padding, can be a number (will be pixels) or a string (see PrimitiveThickness.fromString)
-         * - padding: top, left, right and bottom padding formatted as a single string (see PrimitiveThickness.fromString)
-         */
-        constructor(text: string, settings?: {
-            parent?: Prim2DBase;
-            children?: Array<Prim2DBase>;
-            id?: string;
-            position?: Vector2;
-            x?: number;
-            y?: number;
-            rotation?: number;
-            scale?: number;
-            opacity?: number;
-            origin?: Vector2;
-            fontName?: string;
-            fontSuperSample?: boolean;
-            defaultFontColor?: Color4;
-            size?: Size;
-            tabulationSize?: number;
-            isVisible?: boolean;
-            childrenFlatZOrder?: boolean;
-            marginTop?: number | string;
-            marginLeft?: number | string;
-            marginRight?: number | string;
-            marginBottom?: number | string;
-            margin?: number | string;
-            marginHAlignment?: number;
-            marginVAlignment?: number;
-            marginAlignment?: string;
-            paddingTop?: number | string;
-            paddingLeft?: number | string;
-            paddingRight?: number | string;
-            paddingBottom?: number | string;
-            padding?: string;
-        });
-        protected levelIntersect(intersectInfo: IntersectInfo2D): boolean;
-        protected createModelRenderCache(modelKey: string): ModelRenderCache;
-        protected setupModelRenderCache(modelRenderCache: ModelRenderCache): Text2DRenderCache;
-        protected createInstanceDataParts(): InstanceDataBase[];
-        protected beforeRefreshForLayoutConstruction(part: InstanceDataBase): any;
-        protected afterRefreshForLayoutConstruction(part: InstanceDataBase, obj: any): void;
-        protected refreshInstanceDataPart(part: InstanceDataBase): boolean;
-        private _updateCharCount();
-        private _fontTexture;
-        private _tabulationSize;
-        private _charCount;
-        private _fontName;
-        private _fontSuperSample;
-        private _defaultFontColor;
-        private _text;
-        private _textSize;
-    }
-}
-
-declare module BABYLON {
-    /**
-     * This is the class that is used to display a World Space Canvas into a 3D scene
-     */
-    class WorldSpaceCanvas2DNode extends Mesh {
-        constructor(name: string, scene: Scene, canvas: Canvas2D);
-        dispose(): void;
-        private _canvas;
+        getClassName(): string;
     }
 }
 
@@ -5540,6 +3500,329 @@ declare module BABYLON {
     }
 }
 
+declare module BABYLON.Debug {
+    class AxesViewer {
+        private _xline;
+        private _yline;
+        private _zline;
+        private _xmesh;
+        private _ymesh;
+        private _zmesh;
+        scene: Scene;
+        scaleLines: number;
+        constructor(scene: Scene, scaleLines?: number);
+        update(position: Vector3, xaxis: Vector3, yaxis: Vector3, zaxis: Vector3): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON.Debug {
+    class BoneAxesViewer extends Debug.AxesViewer {
+        mesh: Mesh;
+        bone: Bone;
+        pos: Vector3;
+        xaxis: Vector3;
+        yaxis: Vector3;
+        zaxis: Vector3;
+        constructor(scene: Scene, bone: Bone, mesh: Mesh, scaleLines?: number);
+        update(): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class DebugLayer {
+        private _scene;
+        static InspectorURL: string;
+        private _inspector;
+        constructor(scene: Scene);
+        /** Creates the inspector window. */
+        private _createInspector(popup?);
+        isVisible(): boolean;
+        hide(): void;
+        show(popup?: boolean): void;
+    }
+}
+
+declare module BABYLON.Debug {
+    /**
+    * Demo available here: http://www.babylonjs-playground.com/#1BZJVJ#8
+    */
+    class SkeletonViewer {
+        skeleton: Skeleton;
+        mesh: AbstractMesh;
+        autoUpdateBonesMatrices: boolean;
+        renderingGroupId: number;
+        color: Color3;
+        private _scene;
+        private _debugLines;
+        private _debugMesh;
+        private _isEnabled;
+        private _renderFunction;
+        constructor(skeleton: Skeleton, mesh: AbstractMesh, scene: Scene, autoUpdateBonesMatrices?: boolean, renderingGroupId?: number);
+        isEnabled: boolean;
+        private _getBonePosition(position, bone, meshMat, x?, y?, z?);
+        private _getLinesForBonesWithLength(bones, meshMat);
+        private _getLinesForBonesNoLength(bones, meshMat);
+        update(): void;
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    /**
+     * Highlight layer options. This helps customizing the behaviour
+     * of the highlight layer.
+     */
+    interface IHighlightLayerOptions {
+        /**
+         * Multiplication factor apply to the canvas size to compute the render target size
+         * used to generated the glowing objects (the smaller the faster).
+         */
+        mainTextureRatio?: number;
+        /**
+         * Enforces a fixed size texture to ensure resize independant blur.
+         */
+        mainTextureFixedSize?: number;
+        /**
+         * Multiplication factor apply to the main texture size in the first step of the blur to reduce the size
+         * of the picture to blur (the smaller the faster).
+         */
+        blurTextureSizeRatio?: number;
+        /**
+         * How big in texel of the blur texture is the vertical blur.
+         */
+        blurVerticalSize?: number;
+        /**
+         * How big in texel of the blur texture is the horizontal blur.
+         */
+        blurHorizontalSize?: number;
+        /**
+         * Alpha blending mode used to apply the blur. Default is combine.
+         */
+        alphaBlendingMode?: number;
+        /**
+         * The camera attached to the layer.
+         */
+        camera?: Camera;
+    }
+    /**
+     * The highlight layer Helps adding a glow effect around a mesh.
+     *
+     * Once instantiated in a scene, simply use the pushMesh or removeMesh method to add or remove
+     * glowy meshes to your scene.
+     *
+     * !!! THIS REQUIRES AN ACTIVE STENCIL BUFFER ON THE CANVAS !!!
+     */
+    class HighlightLayer {
+        /**
+         * The neutral color used during the preparation of the glow effect.
+         * This is black by default as the blend operation is a blend operation.
+         */
+        static neutralColor: Color4;
+        /**
+         * Stencil value used for glowing meshes.
+         */
+        static glowingMeshStencilReference: number;
+        /**
+         * Stencil value used for the other meshes in the scene.
+         */
+        static normalMeshStencilReference: number;
+        private _scene;
+        private _engine;
+        private _options;
+        private _vertexBuffers;
+        private _indexBuffer;
+        private _downSamplePostprocess;
+        private _horizontalBlurPostprocess;
+        private _verticalBlurPostprocess;
+        private _cachedDefines;
+        private _glowMapGenerationEffect;
+        private _glowMapMergeEffect;
+        private _blurTexture;
+        private _mainTexture;
+        private _mainTextureDesiredSize;
+        private _meshes;
+        private _maxSize;
+        private _shouldRender;
+        private _instanceGlowingMeshStencilReference;
+        private _excludedMeshes;
+        /**
+         * Specifies whether or not the inner glow is ACTIVE in the layer.
+         */
+        innerGlow: boolean;
+        /**
+         * Specifies whether or not the outer glow is ACTIVE in the layer.
+         */
+        outerGlow: boolean;
+        /**
+         * Specifies wether the highlight layer is enabled or not.
+         */
+        isEnabled: boolean;
+        /**
+         * Gets the horizontal size of the blur.
+         */
+        /**
+         * Specifies the horizontal size of the blur.
+         */
+        blurHorizontalSize: number;
+        /**
+         * Gets the vertical size of the blur.
+         */
+        /**
+         * Specifies the vertical size of the blur.
+         */
+        blurVerticalSize: number;
+        /**
+         * Gets the camera attached to the layer.
+         */
+        readonly camera: Camera;
+        /**
+         * An event triggered when the highlight layer has been disposed.
+         * @type {BABYLON.Observable}
+         */
+        onDisposeObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the highlight layer is about rendering the main texture with the glowy parts.
+         * @type {BABYLON.Observable}
+         */
+        onBeforeRenderMainTextureObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the highlight layer is being blurred.
+         * @type {BABYLON.Observable}
+         */
+        onBeforeBlurObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the highlight layer has been blurred.
+         * @type {BABYLON.Observable}
+         */
+        onAfterBlurObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the glowing blurred texture is being merged in the scene.
+         * @type {BABYLON.Observable}
+         */
+        onBeforeComposeObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the glowing blurred texture has been merged in the scene.
+         * @type {BABYLON.Observable}
+         */
+        onAfterComposeObservable: Observable<HighlightLayer>;
+        /**
+         * An event triggered when the highlight layer changes its size.
+         * @type {BABYLON.Observable}
+         */
+        onSizeChangedObservable: Observable<HighlightLayer>;
+        /**
+         * Instantiates a new highlight Layer and references it to the scene..
+         * @param name The name of the layer
+         * @param scene The scene to use the layer in
+         * @param options Sets of none mandatory options to use with the layer (see IHighlightLayerOptions for more information)
+         */
+        constructor(name: string, scene: Scene, options?: IHighlightLayerOptions);
+        /**
+         * Creates the render target textures and post processes used in the highlight layer.
+         */
+        private createTextureAndPostProcesses();
+        /**
+         * Checks for the readiness of the element composing the layer.
+         * @param subMesh the mesh to check for
+         * @param useInstances specify wether or not to use instances to render the mesh
+         * @param emissiveTexture the associated emissive texture used to generate the glow
+         * @return true if ready otherwise, false
+         */
+        private isReady(subMesh, useInstances, emissiveTexture);
+        /**
+         * Renders the glowing part of the scene by blending the blurred glowing meshes on top of the rendered scene.
+         */
+        render(): void;
+        /**
+         * Add a mesh in the exclusion list to prevent it to impact or being impacted by the highlight layer.
+         * @param mesh The mesh to exclude from the highlight layer
+         */
+        addExcludedMesh(mesh: Mesh): void;
+        /**
+          * Remove a mesh from the exclusion list to let it impact or being impacted by the highlight layer.
+          * @param mesh The mesh to highlight
+          */
+        removeExcludedMesh(mesh: Mesh): void;
+        /**
+         * Add a mesh in the highlight layer in order to make it glow with the chosen color.
+         * @param mesh The mesh to highlight
+         * @param color The color of the highlight
+         * @param glowEmissiveOnly Extract the glow from the emissive texture
+         */
+        addMesh(mesh: Mesh, color: Color3, glowEmissiveOnly?: boolean): void;
+        /**
+         * Remove a mesh from the highlight layer in order to make it stop glowing.
+         * @param mesh The mesh to highlight
+         */
+        removeMesh(mesh: Mesh): void;
+        /**
+         * Returns true if the layer contains information to display, otherwise false.
+         */
+        shouldRender(): boolean;
+        /**
+         * Sets the main texture desired size which is the closest power of two
+         * of the engine canvas size.
+         */
+        private setMainTextureSize();
+        /**
+         * Force the stencil to the normal expected value for none glowing parts
+         */
+        private defaultStencilReference(mesh);
+        /**
+         * Dispose only the render target textures and post process.
+         */
+        private disposeTextureAndPostProcesses();
+        /**
+         * Dispose the highlight layer and free resources.
+         */
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class Layer {
+        name: string;
+        texture: Texture;
+        isBackground: boolean;
+        color: Color4;
+        scale: Vector2;
+        offset: Vector2;
+        alphaBlendingMode: number;
+        alphaTest: boolean;
+        private _scene;
+        private _vertexBuffers;
+        private _indexBuffer;
+        private _effect;
+        private _alphaTestEffect;
+        /**
+        * An event triggered when the layer is disposed.
+        * @type {BABYLON.Observable}
+        */
+        onDisposeObservable: Observable<Layer>;
+        private _onDisposeObserver;
+        onDispose: () => void;
+        /**
+        * An event triggered before rendering the scene
+        * @type {BABYLON.Observable}
+        */
+        onBeforeRenderObservable: Observable<Layer>;
+        private _onBeforeRenderObserver;
+        onBeforeRender: () => void;
+        /**
+        * An event triggered after rendering the scene
+        * @type {BABYLON.Observable}
+        */
+        onAfterRenderObservable: Observable<Layer>;
+        private _onAfterRenderObserver;
+        onAfterRender: () => void;
+        constructor(name: string, imgUrl: string, scene: Scene, isBackground?: boolean, color?: Color4);
+        render(): void;
+        dispose(): void;
+    }
+}
+
 declare module BABYLON {
     class BoundingBox implements ICullable {
         minimum: Vector3;
@@ -5617,12 +3900,22 @@ declare module BABYLON {
         private _pvec;
         private _tvec;
         private _qvec;
+        private _renderPoints;
+        private _renderLine;
+        private _renderFunction;
+        private _scene;
+        private _show;
+        private _tmpRay;
         constructor(origin: Vector3, direction: Vector3, length?: number);
         intersectsBoxMinMax(minimum: Vector3, maximum: Vector3): boolean;
         intersectsBox(box: BoundingBox): boolean;
         intersectsSphere(sphere: BoundingSphere): boolean;
         intersectsTriangle(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3): IntersectionInfo;
         intersectsPlane(plane: Plane): number;
+        intersectsMesh(mesh: AbstractMesh, fastCheck?: boolean): PickingInfo;
+        show(scene: Scene, color: Color3): void;
+        hide(): void;
+        private _render();
         private static smallnum;
         private static rayl;
         /**
@@ -5643,133 +3936,7 @@ declare module BABYLON {
         */
         static CreateNewFromTo(origin: Vector3, end: Vector3, world?: Matrix): Ray;
         static Transform(ray: Ray, matrix: Matrix): Ray;
-    }
-}
-
-declare module BABYLON {
-    class DebugLayer {
-        private _scene;
-        private _camera;
-        private _transformationMatrix;
-        private _enabled;
-        private _labelsEnabled;
-        private _displayStatistics;
-        private _displayTree;
-        private _displayLogs;
-        private _globalDiv;
-        private _statsDiv;
-        private _statsSubsetDiv;
-        private _optionsDiv;
-        private _optionsSubsetDiv;
-        private _logDiv;
-        private _logSubsetDiv;
-        private _treeDiv;
-        private _treeSubsetDiv;
-        private _drawingCanvas;
-        private _drawingContext;
-        private _rootElement;
-        private _skeletonViewers;
-        _syncPositions: () => void;
-        private _syncData;
-        private _syncUI;
-        private _onCanvasClick;
-        private _clickPosition;
-        private _ratio;
-        private _identityMatrix;
-        private _showUI;
-        private _needToRefreshMeshesTree;
-        shouldDisplayLabel: (node: Node) => boolean;
-        shouldDisplayAxis: (mesh: Mesh) => boolean;
-        axisRatio: number;
-        accentColor: string;
-        customStatsFunction: () => string;
-        constructor(scene: Scene);
-        private _refreshMeshesTreeContent();
-        private _renderSingleAxis(zero, unit, unitText, label, color);
-        private _renderAxis(projectedPosition, mesh, globalViewport);
-        private _renderLabel(text, projectedPosition, labelOffset, onClick, getFillStyle);
-        private _isClickInsideRect(x, y, width, height);
-        isVisible(): boolean;
-        hide(): void;
-        private _clearSkeletonViewers();
-        show(showUI?: boolean, camera?: Camera, rootElement?: HTMLElement): void;
-        private _clearLabels();
-        private _generateheader(root, text);
-        private _generateTexBox(root, title, color);
-        private _generateAdvancedCheckBox(root, leftTitle, rightTitle, initialState, task, tag?);
-        private _generateCheckBox(root, title, initialState, task, tag?);
-        private _generateButton(root, title, task, tag?);
-        private _generateRadio(root, title, name, initialState, task, tag?);
-        private _generateDOMelements();
-        private _displayStats();
-    }
-}
-
-declare module BABYLON.Debug {
-    /**
-    * Demo available here: http://www.babylonjs-playground.com/#1BZJVJ#8
-    */
-    class SkeletonViewer {
-        skeleton: Skeleton;
-        mesh: AbstractMesh;
-        autoUpdateBonesMatrices: boolean;
-        renderingGroupId: number;
-        color: Color3;
-        private _scene;
-        private _debugLines;
-        private _debugMesh;
-        private _isEnabled;
-        private _renderFunction;
-        constructor(skeleton: Skeleton, mesh: AbstractMesh, scene: Scene, autoUpdateBonesMatrices?: boolean, renderingGroupId?: number);
-        isEnabled: boolean;
-        private _getBonePosition(position, bone, meshMat, x?, y?, z?);
-        private _getLinesForBonesWithLength(bones, meshMat);
-        private _getLinesForBonesNoLength(bones, meshMat);
-        update(): void;
-        private _updateBoneMatrix(bone);
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
-    class Layer {
-        name: string;
-        texture: Texture;
-        isBackground: boolean;
-        color: Color4;
-        scale: Vector2;
-        offset: Vector2;
-        alphaBlendingMode: number;
-        alphaTest: boolean;
-        private _scene;
-        private _vertexBuffers;
-        private _indexBuffer;
-        private _effect;
-        private _alphaTestEffect;
-        /**
-        * An event triggered when the layer is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<Layer>;
-        private _onDisposeObserver;
-        onDispose: () => void;
-        /**
-        * An event triggered before rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onBeforeRenderObservable: Observable<Layer>;
-        private _onBeforeRenderObserver;
-        onBeforeRender: () => void;
-        /**
-        * An event triggered after rendering the scene
-        * @type {BABYLON.Observable}
-        */
-        onAfterRenderObservable: Observable<Layer>;
-        private _onAfterRenderObserver;
-        onAfterRender: () => void;
-        constructor(name: string, imgUrl: string, scene: Scene, isBackground?: boolean, color?: Color4);
-        render(): void;
-        dispose(): void;
+        static TransformToRef(ray: Ray, matrix: Matrix, result: Ray): void;
     }
 }
 
@@ -5791,6 +3958,7 @@ declare module BABYLON {
         name: string;
         lensFlares: LensFlare[];
         borderLimit: number;
+        viewportBorder: number;
         meshesSelectionPredicate: (mesh: Mesh) => boolean;
         layerMask: number;
         id: string;
@@ -5818,6 +3986,58 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
+    interface ISceneLoaderPluginExtensions {
+        [extension: string]: {
+            isBinary: boolean;
+        };
+    }
+    interface ISceneLoaderPlugin {
+        extensions: string | ISceneLoaderPluginExtensions;
+        importMesh: (meshesNames: any, scene: Scene, data: any, rootUrl: string, meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => boolean;
+        load: (scene: Scene, data: string, rootUrl: string) => boolean;
+    }
+    interface ISceneLoaderPluginAsync {
+        extensions: string | ISceneLoaderPluginExtensions;
+        importMeshAsync: (meshesNames: any, scene: Scene, data: any, rootUrl: string, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, onerror?: () => void) => void;
+        loadAsync: (scene: Scene, data: string, rootUrl: string, onsuccess: () => void, onerror: () => void) => boolean;
+    }
+    class SceneLoader {
+        private static _ForceFullSceneLoadingForIncremental;
+        private static _ShowLoadingScreen;
+        static readonly NO_LOGGING: number;
+        static readonly MINIMAL_LOGGING: number;
+        static readonly SUMMARY_LOGGING: number;
+        static readonly DETAILED_LOGGING: number;
+        private static _loggingLevel;
+        static ForceFullSceneLoadingForIncremental: boolean;
+        static ShowLoadingScreen: boolean;
+        static loggingLevel: number;
+        private static _registeredPlugins;
+        private static _getDefaultPlugin();
+        private static _getPluginForExtension(extension);
+        private static _getPluginForFilename(sceneFilename);
+        private static _getDirectLoad(sceneFilename);
+        static GetPluginForExtension(extension: string): ISceneLoaderPlugin | ISceneLoaderPluginAsync;
+        static RegisterPlugin(plugin: ISceneLoaderPlugin | ISceneLoaderPluginAsync): void;
+        static ImportMesh(meshesNames: any, rootUrl: string, sceneFilename: string, scene: Scene, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, progressCallBack?: () => void, onerror?: (scene: Scene, message: string, exception?: any) => void): void;
+        /**
+        * Load a scene
+        * @param rootUrl a string that defines the root url for scene and resources
+        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
+        * @param engine is the instance of BABYLON.Engine to use to create the scene
+        */
+        static Load(rootUrl: string, sceneFilename: any, engine: Engine, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+        /**
+        * Append a scene
+        * @param rootUrl a string that defines the root url for scene and resources
+        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
+        * @param scene is the instance of BABYLON.Scene to append to
+        */
+        static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+    }
+}
+
+declare module BABYLON {
     class DirectionalLight extends Light implements IShadowLight {
         position: Vector3;
         direction: Vector3;
@@ -5831,6 +4051,7 @@ declare module BABYLON {
         private _orthoTop;
         private _orthoBottom;
         constructor(name: string, direction: Vector3, scene: Scene);
+        getClassName(): string;
         getAbsolutePosition(): Vector3;
         setDirectionToTarget(target: Vector3): Vector3;
         setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
@@ -5851,6 +4072,7 @@ declare module BABYLON {
         direction: Vector3;
         private _worldMatrix;
         constructor(name: string, direction: Vector3, scene: Scene);
+        getClassName(): string;
         setDirectionToTarget(target: Vector3): Vector3;
         getShadowGenerator(): ShadowGenerator;
         transferToEffect(effect: Effect, directionUniformName: string, groundColorUniformName: string): void;
@@ -5875,6 +4097,28 @@ declare module BABYLON {
         _shadowGenerator: IShadowGenerator;
     }
     class Light extends Node {
+        private static _LIGHTMAP_DEFAULT;
+        private static _LIGHTMAP_SPECULAR;
+        private static _LIGHTMAP_SHADOWSONLY;
+        /**
+         * If every light affecting the material is in this lightmapMode,
+         * material.lightmapTexture adds or multiplies
+         * (depends on material.useLightmapAsShadowmap)
+         * after every other light calculations.
+         */
+        static readonly LIGHTMAP_DEFAULT: number;
+        /**
+         * material.lightmapTexture as only diffuse lighting from this light
+         * adds pnly specular lighting from this light
+         * adds dynamic shadows
+         */
+        static readonly LIGHTMAP_SPECULAR: number;
+        /**
+         * material.lightmapTexture as only lighting
+         * no light calculation from this light
+         * only adds dynamic shadows from this light
+         */
+        static readonly LIGHTMAP_SHADOWSONLY: number;
         diffuse: Color3;
         specular: Color3;
         intensity: number;
@@ -5883,12 +4127,14 @@ declare module BABYLON {
         includedOnlyMeshes: AbstractMesh[];
         excludedMeshes: AbstractMesh[];
         excludeWithLayerMask: number;
+        lightmapMode: number;
         radius: number;
         _shadowGenerator: IShadowGenerator;
         private _parentedWorldMatrix;
         _excludedMeshesIds: string[];
         _includedOnlyMeshesIds: string[];
         constructor(name: string, scene: Scene);
+        getClassName(): string;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
@@ -5914,6 +4160,7 @@ declare module BABYLON {
         transformedPosition: Vector3;
         position: Vector3;
         constructor(name: string, position: Vector3, scene: Scene);
+        getClassName(): string;
         getAbsolutePosition(): Vector3;
         computeTransformedPosition(): boolean;
         transferToEffect(effect: Effect, positionUniformName: string): void;
@@ -5937,6 +4184,7 @@ declare module BABYLON {
         private _transformedDirection;
         private _worldMatrix;
         constructor(name: string, position: Vector3, direction: Vector3, angle: number, exponent: number, scene: Scene);
+        getClassName(): string;
         getAbsolutePosition(): Vector3;
         setShadowProjectionMatrix(matrix: Matrix, viewMatrix: Matrix, renderList: Array<AbstractMesh>): void;
         needCube(): boolean;
@@ -5948,50 +4196,680 @@ declare module BABYLON {
         transferToEffect(effect: Effect, positionUniformName: string, directionUniformName: string): void;
         _getWorldMatrix(): Matrix;
         getTypeID(): number;
+        getRotation(): Vector3;
     }
 }
 
 declare module BABYLON {
-    interface ISceneLoaderPlugin {
-        extensions: string;
-        importMesh: (meshesNames: any, scene: Scene, data: any, rootUrl: string, meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => boolean;
-        load: (scene: Scene, data: string, rootUrl: string) => boolean;
+    class SIMDHelper {
+        private static _isEnabled;
+        static readonly IsEnabled: boolean;
+        static DisableSIMD(): void;
+        static EnableSIMD(): void;
     }
-    interface ISceneLoaderPluginAsync {
-        extensions: string;
-        importMeshAsync: (meshesNames: any, scene: Scene, data: any, rootUrl: string, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, onerror?: () => void) => void;
-        loadAsync: (scene: Scene, data: string, rootUrl: string, onsuccess: () => void, onerror: () => void) => boolean;
+}
+
+declare module BABYLON {
+    const ToGammaSpace: number;
+    const ToLinearSpace = 2.2;
+    const Epsilon = 0.001;
+    class MathTools {
+        static WithinEpsilon(a: number, b: number, epsilon?: number): boolean;
+        static ToHex(i: number): string;
+        static Sign(value: number): number;
+        static Clamp(value: number, min?: number, max?: number): number;
     }
-    class SceneLoader {
-        private static _ForceFullSceneLoadingForIncremental;
-        private static _ShowLoadingScreen;
-        static NO_LOGGING: number;
-        static MINIMAL_LOGGING: number;
-        static SUMMARY_LOGGING: number;
-        static DETAILED_LOGGING: number;
-        private static _loggingLevel;
-        static ForceFullSceneLoadingForIncremental: boolean;
-        static ShowLoadingScreen: boolean;
-        static loggingLevel: number;
-        private static _registeredPlugins;
-        private static _getPluginForFilename(sceneFilename);
-        static GetPluginForExtension(extension: string): ISceneLoaderPlugin | ISceneLoaderPluginAsync;
-        static RegisterPlugin(plugin: ISceneLoaderPlugin): void;
-        static ImportMesh(meshesNames: any, rootUrl: string, sceneFilename: string, scene: Scene, onsuccess?: (meshes: AbstractMesh[], particleSystems: ParticleSystem[], skeletons: Skeleton[]) => void, progressCallBack?: () => void, onerror?: (scene: Scene, message: string, exception?: any) => void): void;
+    class Color3 {
+        r: number;
+        g: number;
+        b: number;
+        constructor(r?: number, g?: number, b?: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        toArray(array: number[], index?: number): Color3;
+        toColor4(alpha?: number): Color4;
+        asArray(): number[];
+        toLuminance(): number;
+        multiply(otherColor: Color3): Color3;
+        multiplyToRef(otherColor: Color3, result: Color3): Color3;
+        equals(otherColor: Color3): boolean;
+        equalsFloats(r: number, g: number, b: number): boolean;
+        scale(scale: number): Color3;
+        scaleToRef(scale: number, result: Color3): Color3;
+        add(otherColor: Color3): Color3;
+        addToRef(otherColor: Color3, result: Color3): Color3;
+        subtract(otherColor: Color3): Color3;
+        subtractToRef(otherColor: Color3, result: Color3): Color3;
+        clone(): Color3;
+        copyFrom(source: Color3): Color3;
+        copyFromFloats(r: number, g: number, b: number): Color3;
+        toHexString(): string;
+        toLinearSpace(): Color3;
+        toLinearSpaceToRef(convertedColor: Color3): Color3;
+        toGammaSpace(): Color3;
+        toGammaSpaceToRef(convertedColor: Color3): Color3;
+        static FromHexString(hex: string): Color3;
+        static FromArray(array: number[], offset?: number): Color3;
+        static FromInts(r: number, g: number, b: number): Color3;
+        static Lerp(start: Color3, end: Color3, amount: number): Color3;
+        static Red(): Color3;
+        static Green(): Color3;
+        static Blue(): Color3;
+        static Black(): Color3;
+        static White(): Color3;
+        static Purple(): Color3;
+        static Magenta(): Color3;
+        static Yellow(): Color3;
+        static Gray(): Color3;
+        static Random(): Color3;
+    }
+    class Color4 {
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+        constructor(r: number, g: number, b: number, a: number);
+        addInPlace(right: any): Color4;
+        asArray(): number[];
+        toArray(array: number[], index?: number): Color4;
+        add(right: Color4): Color4;
+        subtract(right: Color4): Color4;
+        subtractToRef(right: Color4, result: Color4): Color4;
+        scale(scale: number): Color4;
+        scaleToRef(scale: number, result: Color4): Color4;
         /**
-        * Load a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param engine is the instance of BABYLON.Engine to use to create the scene
-        */
-        static Load(rootUrl: string, sceneFilename: any, engine: Engine, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+          * Multipy an RGBA Color4 value by another and return a new Color4 object
+          * @param color The Color4 (RGBA) value to multiply by
+          * @returns A new Color4.
+          */
+        multiply(color: Color4): Color4;
         /**
-        * Append a scene
-        * @param rootUrl a string that defines the root url for scene and resources
-        * @param sceneFilename a string that defines the name of the scene file. can start with "data:" following by the stringified version of the scene
-        * @param scene is the instance of BABYLON.Scene to append to
+         * Multipy an RGBA Color4 value by another and push the result in a reference value
+         * @param color The Color4 (RGBA) value to multiply by
+         * @param result The Color4 (RGBA) to fill the result in
+         * @returns the result Color4.
+         */
+        multiplyToRef(color: Color4, result: Color4): Color4;
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        clone(): Color4;
+        copyFrom(source: Color4): Color4;
+        toHexString(): string;
+        static FromHexString(hex: string): Color4;
+        static Lerp(left: Color4, right: Color4, amount: number): Color4;
+        static LerpToRef(left: Color4, right: Color4, amount: number, result: Color4): void;
+        static FromArray(array: number[], offset?: number): Color4;
+        static FromInts(r: number, g: number, b: number, a: number): Color4;
+        static CheckColors4(colors: number[], count: number): number[];
+    }
+    class Vector2 {
+        x: number;
+        y: number;
+        constructor(x: number, y: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        toArray(array: number[] | Float32Array, index?: number): Vector2;
+        asArray(): number[];
+        copyFrom(source: Vector2): Vector2;
+        copyFromFloats(x: number, y: number): Vector2;
+        add(otherVector: Vector2): Vector2;
+        addToRef(otherVector: Vector2, result: Vector2): Vector2;
+        addInPlace(otherVector: Vector2): Vector2;
+        addVector3(otherVector: Vector3): Vector2;
+        subtract(otherVector: Vector2): Vector2;
+        subtractToRef(otherVector: Vector2, result: Vector2): Vector2;
+        subtractInPlace(otherVector: Vector2): Vector2;
+        multiplyInPlace(otherVector: Vector2): Vector2;
+        multiply(otherVector: Vector2): Vector2;
+        multiplyToRef(otherVector: Vector2, result: Vector2): Vector2;
+        multiplyByFloats(x: number, y: number): Vector2;
+        divide(otherVector: Vector2): Vector2;
+        divideToRef(otherVector: Vector2, result: Vector2): Vector2;
+        negate(): Vector2;
+        scaleInPlace(scale: number): Vector2;
+        scale(scale: number): Vector2;
+        equals(otherVector: Vector2): boolean;
+        equalsWithEpsilon(otherVector: Vector2, epsilon?: number): boolean;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector2;
+        clone(): Vector2;
+        static Zero(): Vector2;
+        static FromArray(array: number[] | Float32Array, offset?: number): Vector2;
+        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector2): void;
+        static CatmullRom(value1: Vector2, value2: Vector2, value3: Vector2, value4: Vector2, amount: number): Vector2;
+        static Clamp(value: Vector2, min: Vector2, max: Vector2): Vector2;
+        static Hermite(value1: Vector2, tangent1: Vector2, value2: Vector2, tangent2: Vector2, amount: number): Vector2;
+        static Lerp(start: Vector2, end: Vector2, amount: number): Vector2;
+        static Dot(left: Vector2, right: Vector2): number;
+        static Normalize(vector: Vector2): Vector2;
+        static Minimize(left: Vector2, right: Vector2): Vector2;
+        static Maximize(left: Vector2, right: Vector2): Vector2;
+        static Transform(vector: Vector2, transformation: Matrix): Vector2;
+        static TransformToRef(vector: Vector2, transformation: Matrix, result: Vector2): void;
+        static PointInTriangle(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): boolean;
+        static Distance(value1: Vector2, value2: Vector2): number;
+        static DistanceSquared(value1: Vector2, value2: Vector2): number;
+        static Center(value1: Vector2, value2: Vector2): Vector2;
+        static DistanceOfPointFromSegment(p: Vector2, segA: Vector2, segB: Vector2): number;
+    }
+    class Vector3 {
+        x: number;
+        y: number;
+        z: number;
+        constructor(x: number, y: number, z: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        toArray(array: number[] | Float32Array, index?: number): Vector3;
+        toQuaternion(): Quaternion;
+        addInPlace(otherVector: Vector3): Vector3;
+        add(otherVector: Vector3): Vector3;
+        addToRef(otherVector: Vector3, result: Vector3): Vector3;
+        subtractInPlace(otherVector: Vector3): Vector3;
+        subtract(otherVector: Vector3): Vector3;
+        subtractToRef(otherVector: Vector3, result: Vector3): Vector3;
+        subtractFromFloats(x: number, y: number, z: number): Vector3;
+        subtractFromFloatsToRef(x: number, y: number, z: number, result: Vector3): Vector3;
+        negate(): Vector3;
+        scaleInPlace(scale: number): Vector3;
+        scale(scale: number): Vector3;
+        scaleToRef(scale: number, result: Vector3): void;
+        equals(otherVector: Vector3): boolean;
+        equalsWithEpsilon(otherVector: Vector3, epsilon?: number): boolean;
+        equalsToFloats(x: number, y: number, z: number): boolean;
+        multiplyInPlace(otherVector: Vector3): Vector3;
+        multiply(otherVector: Vector3): Vector3;
+        multiplyToRef(otherVector: Vector3, result: Vector3): Vector3;
+        multiplyByFloats(x: number, y: number, z: number): Vector3;
+        divide(otherVector: Vector3): Vector3;
+        divideToRef(otherVector: Vector3, result: Vector3): Vector3;
+        MinimizeInPlace(other: Vector3): Vector3;
+        MaximizeInPlace(other: Vector3): Vector3;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector3;
+        clone(): Vector3;
+        copyFrom(source: Vector3): Vector3;
+        copyFromFloats(x: number, y: number, z: number): Vector3;
+        static GetClipFactor(vector0: Vector3, vector1: Vector3, axis: Vector3, size: any): number;
+        static FromArray(array: number[] | Float32Array, offset?: number): Vector3;
+        static FromFloatArray(array: Float32Array, offset?: number): Vector3;
+        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector3): void;
+        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector3): void;
+        static FromFloatsToRef(x: number, y: number, z: number, result: Vector3): void;
+        static Zero(): Vector3;
+        static Up(): Vector3;
+        static Forward(): Vector3;
+        static Right(): Vector3;
+        static Left(): Vector3;
+        static TransformCoordinates(vector: Vector3, transformation: Matrix): Vector3;
+        static TransformCoordinatesToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
+        static TransformCoordinatesFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
+        static TransformNormal(vector: Vector3, transformation: Matrix): Vector3;
+        static TransformNormalToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
+        static TransformNormalFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
+        static CatmullRom(value1: Vector3, value2: Vector3, value3: Vector3, value4: Vector3, amount: number): Vector3;
+        static Clamp(value: Vector3, min: Vector3, max: Vector3): Vector3;
+        static Hermite(value1: Vector3, tangent1: Vector3, value2: Vector3, tangent2: Vector3, amount: number): Vector3;
+        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
+        static LerpToRef(start: Vector3, end: Vector3, amount: number, result: Vector3): void;
+        static Dot(left: Vector3, right: Vector3): number;
+        static Cross(left: Vector3, right: Vector3): Vector3;
+        static CrossToRef(left: Vector3, right: Vector3, result: Vector3): void;
+        static Normalize(vector: Vector3): Vector3;
+        static NormalizeToRef(vector: Vector3, result: Vector3): void;
+        private static _viewportMatrixCache;
+        private static _matrixCache;
+        static Project(vector: Vector3, world: Matrix, transform: Matrix, viewport: Viewport): Vector3;
+        static UnprojectFromTransform(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, transform: Matrix): Vector3;
+        static Unproject(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Vector3;
+        static Minimize(left: Vector3, right: Vector3): Vector3;
+        static Maximize(left: Vector3, right: Vector3): Vector3;
+        static Distance(value1: Vector3, value2: Vector3): number;
+        static DistanceSquared(value1: Vector3, value2: Vector3): number;
+        static Center(value1: Vector3, value2: Vector3): Vector3;
+        /**
+         * Given three orthogonal normalized left-handed oriented Vector3 axis in space (target system),
+         * RotationFromAxis() returns the rotation Euler angles (ex : rotation.x, rotation.y, rotation.z) to apply
+         * to something in order to rotate it from its local system to the given target system.
+         */
+        static RotationFromAxis(axis1: Vector3, axis2: Vector3, axis3: Vector3): Vector3;
+        /**
+         * The same than RotationFromAxis but updates the passed ref Vector3 parameter.
+         */
+        static RotationFromAxisToRef(axis1: Vector3, axis2: Vector3, axis3: Vector3, ref: Vector3): void;
+    }
+    class Vector4 {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x: number, y: number, z: number, w: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        toArray(array: number[], index?: number): Vector4;
+        addInPlace(otherVector: Vector4): Vector4;
+        add(otherVector: Vector4): Vector4;
+        addToRef(otherVector: Vector4, result: Vector4): Vector4;
+        subtractInPlace(otherVector: Vector4): Vector4;
+        subtract(otherVector: Vector4): Vector4;
+        subtractToRef(otherVector: Vector4, result: Vector4): Vector4;
+        subtractFromFloats(x: number, y: number, z: number, w: number): Vector4;
+        subtractFromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): Vector4;
+        negate(): Vector4;
+        scaleInPlace(scale: number): Vector4;
+        scale(scale: number): Vector4;
+        scaleToRef(scale: number, result: Vector4): void;
+        equals(otherVector: Vector4): boolean;
+        equalsWithEpsilon(otherVector: Vector4, epsilon?: number): boolean;
+        equalsToFloats(x: number, y: number, z: number, w: number): boolean;
+        multiplyInPlace(otherVector: Vector4): Vector4;
+        multiply(otherVector: Vector4): Vector4;
+        multiplyToRef(otherVector: Vector4, result: Vector4): Vector4;
+        multiplyByFloats(x: number, y: number, z: number, w: number): Vector4;
+        divide(otherVector: Vector4): Vector4;
+        divideToRef(otherVector: Vector4, result: Vector4): Vector4;
+        MinimizeInPlace(other: Vector4): Vector4;
+        MaximizeInPlace(other: Vector4): Vector4;
+        length(): number;
+        lengthSquared(): number;
+        normalize(): Vector4;
+        toVector3(): Vector3;
+        clone(): Vector4;
+        copyFrom(source: Vector4): Vector4;
+        copyFromFloats(x: number, y: number, z: number, w: number): Vector4;
+        static FromArray(array: number[], offset?: number): Vector4;
+        static FromArrayToRef(array: number[], offset: number, result: Vector4): void;
+        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector4): void;
+        static FromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): void;
+        static Zero(): Vector4;
+        static Normalize(vector: Vector4): Vector4;
+        static NormalizeToRef(vector: Vector4, result: Vector4): void;
+        static Minimize(left: Vector4, right: Vector4): Vector4;
+        static Maximize(left: Vector4, right: Vector4): Vector4;
+        static Distance(value1: Vector4, value2: Vector4): number;
+        static DistanceSquared(value1: Vector4, value2: Vector4): number;
+        static Center(value1: Vector4, value2: Vector4): Vector4;
+    }
+    interface ISize {
+        width: number;
+        height: number;
+    }
+    class Size implements ISize {
+        width: number;
+        height: number;
+        constructor(width: number, height: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        copyFrom(src: Size): void;
+        copyFromFloats(width: number, height: number): void;
+        multiplyByFloats(w: number, h: number): Size;
+        clone(): Size;
+        equals(other: Size): boolean;
+        readonly surface: number;
+        static Zero(): Size;
+        add(otherSize: Size): Size;
+        substract(otherSize: Size): Size;
+        static Lerp(start: Size, end: Size, amount: number): Size;
+    }
+    class Quaternion {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x?: number, y?: number, z?: number, w?: number);
+        toString(): string;
+        getClassName(): string;
+        getHashCode(): number;
+        asArray(): number[];
+        equals(otherQuaternion: Quaternion): boolean;
+        clone(): Quaternion;
+        copyFrom(other: Quaternion): Quaternion;
+        copyFromFloats(x: number, y: number, z: number, w: number): Quaternion;
+        add(other: Quaternion): Quaternion;
+        subtract(other: Quaternion): Quaternion;
+        scale(value: number): Quaternion;
+        multiply(q1: Quaternion): Quaternion;
+        multiplyToRef(q1: Quaternion, result: Quaternion): Quaternion;
+        multiplyInPlace(q1: Quaternion): Quaternion;
+        conjugateToRef(ref: Quaternion): Quaternion;
+        conjugateInPlace(): Quaternion;
+        conjugate(): Quaternion;
+        length(): number;
+        normalize(): Quaternion;
+        toEulerAngles(order?: string): Vector3;
+        toEulerAnglesToRef(result: Vector3, order?: string): Quaternion;
+        toRotationMatrix(result: Matrix): Quaternion;
+        fromRotationMatrix(matrix: Matrix): Quaternion;
+        static FromRotationMatrix(matrix: Matrix): Quaternion;
+        static FromRotationMatrixToRef(matrix: Matrix, result: Quaternion): void;
+        static Inverse(q: Quaternion): Quaternion;
+        static Identity(): Quaternion;
+        static RotationAxis(axis: Vector3, angle: number): Quaternion;
+        static RotationAxisToRef(axis: Vector3, angle: number, result: Quaternion): Quaternion;
+        static FromArray(array: number[], offset?: number): Quaternion;
+        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Quaternion;
+        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Quaternion): void;
+        static RotationAlphaBetaGamma(alpha: number, beta: number, gamma: number): Quaternion;
+        static RotationAlphaBetaGammaToRef(alpha: number, beta: number, gamma: number, result: Quaternion): void;
+        static Slerp(left: Quaternion, right: Quaternion, amount: number): Quaternion;
+        static SlerpToRef(left: Quaternion, right: Quaternion, amount: number, result: Quaternion): void;
+    }
+    class Matrix {
+        private static _tempQuaternion;
+        private static _xAxis;
+        private static _yAxis;
+        private static _zAxis;
+        m: Float32Array;
+        isIdentity(): boolean;
+        determinant(): number;
+        toArray(): Float32Array;
+        asArray(): Float32Array;
+        invert(): Matrix;
+        reset(): Matrix;
+        add(other: Matrix): Matrix;
+        addToRef(other: Matrix, result: Matrix): Matrix;
+        addToSelf(other: Matrix): Matrix;
+        invertToRef(other: Matrix): Matrix;
+        setTranslation(vector3: Vector3): Matrix;
+        getTranslation(): Vector3;
+        multiply(other: Matrix): Matrix;
+        copyFrom(other: Matrix): Matrix;
+        copyToArray(array: Float32Array, offset?: number): Matrix;
+        multiplyToRef(other: Matrix, result: Matrix): Matrix;
+        multiplyToArray(other: Matrix, result: Float32Array, offset: number): Matrix;
+        equals(value: Matrix): boolean;
+        clone(): Matrix;
+        getClassName(): string;
+        getHashCode(): number;
+        decompose(scale: Vector3, rotation: Quaternion, translation: Vector3): boolean;
+        getRotationMatrix(): Matrix;
+        getRotationMatrixToRef(result: Matrix): void;
+        static FromArray(array: number[], offset?: number): Matrix;
+        static FromArrayToRef(array: number[], offset: number, result: Matrix): void;
+        static FromFloat32ArrayToRefScaled(array: Float32Array, offset: number, scale: number, result: Matrix): void;
+        static FromValuesToRef(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number, result: Matrix): void;
+        getRow(index: number): Vector4;
+        setRow(index: number, row: Vector4): Matrix;
+        static FromValues(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number): Matrix;
+        static Compose(scale: Vector3, rotation: Quaternion, translation: Vector3): Matrix;
+        static Identity(): Matrix;
+        static IdentityToRef(result: Matrix): void;
+        static Zero(): Matrix;
+        static RotationX(angle: number): Matrix;
+        static Invert(source: Matrix): Matrix;
+        static RotationXToRef(angle: number, result: Matrix): void;
+        static RotationY(angle: number): Matrix;
+        static RotationYToRef(angle: number, result: Matrix): void;
+        static RotationZ(angle: number): Matrix;
+        static RotationZToRef(angle: number, result: Matrix): void;
+        static RotationAxis(axis: Vector3, angle: number): Matrix;
+        static RotationAxisToRef(axis: Vector3, angle: number, result: Matrix): void;
+        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Matrix;
+        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Matrix): void;
+        static Scaling(x: number, y: number, z: number): Matrix;
+        static ScalingToRef(x: number, y: number, z: number, result: Matrix): void;
+        static Translation(x: number, y: number, z: number): Matrix;
+        static TranslationToRef(x: number, y: number, z: number, result: Matrix): void;
+        static Lerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
+        static DecomposeLerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
+        static LookAtLH(eye: Vector3, target: Vector3, up: Vector3): Matrix;
+        static LookAtLHToRef(eye: Vector3, target: Vector3, up: Vector3, result: Matrix): void;
+        static LookAtRH(eye: Vector3, target: Vector3, up: Vector3): Matrix;
+        static LookAtRHToRef(eye: Vector3, target: Vector3, up: Vector3, result: Matrix): void;
+        static OrthoLH(width: number, height: number, znear: number, zfar: number): Matrix;
+        static OrthoLHToRef(width: number, height: number, znear: number, zfar: number, result: Matrix): void;
+        static OrthoOffCenterLH(left: number, right: number, bottom: number, top: number, znear: number, zfar: number): Matrix;
+        static OrthoOffCenterLHToRef(left: number, right: any, bottom: number, top: number, znear: number, zfar: number, result: Matrix): void;
+        static OrthoOffCenterRH(left: number, right: number, bottom: number, top: number, znear: number, zfar: number): Matrix;
+        static OrthoOffCenterRHToRef(left: number, right: any, bottom: number, top: number, znear: number, zfar: number, result: Matrix): void;
+        static PerspectiveLH(width: number, height: number, znear: number, zfar: number): Matrix;
+        static PerspectiveFovLH(fov: number, aspect: number, znear: number, zfar: number): Matrix;
+        static PerspectiveFovLHToRef(fov: number, aspect: number, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
+        static PerspectiveFovRH(fov: number, aspect: number, znear: number, zfar: number): Matrix;
+        static PerspectiveFovRHToRef(fov: number, aspect: number, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
+        static PerspectiveFovWebVRToRef(fov: any, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
+        static GetFinalMatrix(viewport: Viewport, world: Matrix, view: Matrix, projection: Matrix, zmin: number, zmax: number): Matrix;
+        static GetAsMatrix2x2(matrix: Matrix): Float32Array;
+        static GetAsMatrix3x3(matrix: Matrix): Float32Array;
+        static Transpose(matrix: Matrix): Matrix;
+        static Reflection(plane: Plane): Matrix;
+        static ReflectionToRef(plane: Plane, result: Matrix): void;
+        static FromXYZAxesToRef(xaxis: Vector3, yaxis: Vector3, zaxis: Vector3, mat: Matrix): void;
+        static FromQuaternionToRef(quat: Quaternion, result: Matrix): void;
+    }
+    class Plane {
+        normal: Vector3;
+        d: number;
+        constructor(a: number, b: number, c: number, d: number);
+        asArray(): number[];
+        clone(): Plane;
+        getClassName(): string;
+        getHashCode(): number;
+        normalize(): Plane;
+        transform(transformation: Matrix): Plane;
+        dotCoordinate(point: any): number;
+        copyFromPoints(point1: Vector3, point2: Vector3, point3: Vector3): Plane;
+        isFrontFacingTo(direction: Vector3, epsilon: number): boolean;
+        signedDistanceTo(point: Vector3): number;
+        static FromArray(array: number[]): Plane;
+        static FromPoints(point1: any, point2: any, point3: any): Plane;
+        static FromPositionAndNormal(origin: Vector3, normal: Vector3): Plane;
+        static SignedDistanceToPlaneFromPositionAndNormal(origin: Vector3, normal: Vector3, point: Vector3): number;
+    }
+    class Viewport {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        constructor(x: number, y: number, width: number, height: number);
+        toGlobal(renderWidth: number, renderHeight: number): Viewport;
+    }
+    class Frustum {
+        static GetPlanes(transform: Matrix): Plane[];
+        static GetPlanesToRef(transform: Matrix, frustumPlanes: Plane[]): void;
+    }
+    enum Space {
+        LOCAL = 0,
+        WORLD = 1,
+    }
+    class Axis {
+        static X: Vector3;
+        static Y: Vector3;
+        static Z: Vector3;
+    }
+    class BezierCurve {
+        static interpolate(t: number, x1: number, y1: number, x2: number, y2: number): number;
+    }
+    enum Orientation {
+        CW = 0,
+        CCW = 1,
+    }
+    class Angle {
+        private _radians;
+        constructor(radians: number);
+        degrees: () => number;
+        radians: () => number;
+        static BetweenTwoPoints(a: Vector2, b: Vector2): Angle;
+        static FromRadians(radians: number): Angle;
+        static FromDegrees(degrees: number): Angle;
+    }
+    class Arc2 {
+        startPoint: Vector2;
+        midPoint: Vector2;
+        endPoint: Vector2;
+        centerPoint: Vector2;
+        radius: number;
+        angle: Angle;
+        startAngle: Angle;
+        orientation: Orientation;
+        constructor(startPoint: Vector2, midPoint: Vector2, endPoint: Vector2);
+    }
+    class Path2 {
+        private _points;
+        private _length;
+        closed: boolean;
+        constructor(x: number, y: number);
+        addLineTo(x: number, y: number): Path2;
+        addArcTo(midX: number, midY: number, endX: number, endY: number, numberOfSegments?: number): Path2;
+        close(): Path2;
+        length(): number;
+        getPoints(): Vector2[];
+        getPointAtLengthPosition(normalizedLengthPosition: number): Vector2;
+        static StartingAt(x: number, y: number): Path2;
+    }
+    class Path3D {
+        path: Vector3[];
+        private _curve;
+        private _distances;
+        private _tangents;
+        private _normals;
+        private _binormals;
+        private _raw;
+        /**
+        * new Path3D(path, normal, raw)
+        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
+        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
+        * path : an array of Vector3, the curve axis of the Path3D
+        * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
+        * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
         */
-        static Append(rootUrl: string, sceneFilename: any, scene: Scene, onsuccess?: (scene: Scene) => void, progressCallBack?: any, onerror?: (scene: Scene) => void): void;
+        constructor(path: Vector3[], firstNormal?: Vector3, raw?: boolean);
+        /**
+         * Returns the Path3D array of successive Vector3 designing its curve.
+         */
+        getCurve(): Vector3[];
+        /**
+         * Returns an array populated with tangent vectors on each Path3D curve point.
+         */
+        getTangents(): Vector3[];
+        /**
+         * Returns an array populated with normal vectors on each Path3D curve point.
+         */
+        getNormals(): Vector3[];
+        /**
+         * Returns an array populated with binormal vectors on each Path3D curve point.
+         */
+        getBinormals(): Vector3[];
+        /**
+         * Returns an array populated with distances (float) of the i-th point from the first curve point.
+         */
+        getDistances(): number[];
+        /**
+         * Forces the Path3D tangent, normal, binormal and distance recomputation.
+         * Returns the same object updated.
+         */
+        update(path: Vector3[], firstNormal?: Vector3): Path3D;
+        private _compute(firstNormal);
+        private _getFirstNonNullVector(index);
+        private _getLastNonNullVector(index);
+        private _normalVector(v0, vt, va);
+    }
+    class Curve3 {
+        private _points;
+        private _length;
+        /**
+         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
+         * @param v0 (Vector3) the origin point of the Quadratic Bezier
+         * @param v1 (Vector3) the control point
+         * @param v2 (Vector3) the end point of the Quadratic Bezier
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateQuadraticBezier(v0: Vector3, v1: Vector3, v2: Vector3, nbPoints: number): Curve3;
+        /**
+         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
+         * @param v0 (Vector3) the origin point of the Cubic Bezier
+         * @param v1 (Vector3) the first control point
+         * @param v2 (Vector3) the second control point
+         * @param v3 (Vector3) the end point of the Cubic Bezier
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateCubicBezier(v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, nbPoints: number): Curve3;
+        /**
+         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
+         * @param p1 (Vector3) the origin point of the Hermite Spline
+         * @param t1 (Vector3) the tangent vector at the origin point
+         * @param p2 (Vector3) the end point of the Hermite Spline
+         * @param t2 (Vector3) the tangent vector at the end point
+         * @param nbPoints (integer) the wanted number of points in the curve
+         */
+        static CreateHermiteSpline(p1: Vector3, t1: Vector3, p2: Vector3, t2: Vector3, nbPoints: number): Curve3;
+        /**
+         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
+         * A Curve3 is designed from a series of successive Vector3.
+         * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
+         */
+        constructor(points: Vector3[]);
+        /**
+         * Returns the Curve3 stored array of successive Vector3
+         */
+        getPoints(): Vector3[];
+        /**
+         * Returns the computed length (float) of the curve.
+         */
+        length(): number;
+        /**
+         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
+         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
+         * curveA and curveB keep unchanged.
+         */
+        continue(curve: Curve3): Curve3;
+        private _computeLength(path);
+    }
+    class SphericalHarmonics {
+        L00: Vector3;
+        L1_1: Vector3;
+        L10: Vector3;
+        L11: Vector3;
+        L2_2: Vector3;
+        L2_1: Vector3;
+        L20: Vector3;
+        L21: Vector3;
+        L22: Vector3;
+        addLight(direction: Vector3, color: Color3, deltaSolidAngle: number): void;
+        scale(scale: number): void;
+    }
+    class SphericalPolynomial {
+        x: Vector3;
+        y: Vector3;
+        z: Vector3;
+        xx: Vector3;
+        yy: Vector3;
+        zz: Vector3;
+        xy: Vector3;
+        yz: Vector3;
+        zx: Vector3;
+        addAmbient(color: Color3): void;
+        static getSphericalPolynomialFromHarmonics(harmonics: SphericalHarmonics): SphericalPolynomial;
+    }
+    class PositionNormalVertex {
+        position: Vector3;
+        normal: Vector3;
+        constructor(position?: Vector3, normal?: Vector3);
+        clone(): PositionNormalVertex;
+    }
+    class PositionNormalTextureVertex {
+        position: Vector3;
+        normal: Vector3;
+        uv: Vector2;
+        constructor(position?: Vector3, normal?: Vector3, uv?: Vector2);
+        clone(): PositionNormalTextureVertex;
+    }
+    class Tmp {
+        static Color3: Color3[];
+        static Vector2: Vector2[];
+        static Vector3: Vector3[];
+        static Vector4: Vector4[];
+        static Quaternion: Quaternion[];
+        static Matrix: Matrix[];
     }
 }
 
@@ -6240,7 +5118,7 @@ declare module BABYLON {
         private _meshRank;
         addFallback(rank: number, define: string): void;
         addCPUSkinningFallback(rank: number, mesh: BABYLON.AbstractMesh): void;
-        isMoreFallbacks: boolean;
+        readonly isMoreFallbacks: boolean;
         reduce(currentDefines: string): string;
     }
     class Effect {
@@ -6249,6 +5127,8 @@ declare module BABYLON {
         onCompiled: (effect: Effect) => void;
         onError: (effect: Effect, errors: string) => void;
         onBind: (effect: Effect) => void;
+        uniqueId: number;
+        private static _uniqueIdSeed;
         private _engine;
         private _uniformsNames;
         private _samplers;
@@ -6262,6 +5142,7 @@ declare module BABYLON {
         private _program;
         private _valueCache;
         constructor(baseName: any, attributesNames: string[], uniformsNames: string[], samplers: string[], engine: any, defines?: string, fallbacks?: EffectFallbacks, onCompiled?: (effect: Effect) => void, onError?: (effect: Effect, errors: string) => void, indexParameters?: any);
+        readonly key: string;
         isReady(): boolean;
         getProgram(): WebGLProgram;
         getAttributesNames(): string[];
@@ -6272,13 +5153,16 @@ declare module BABYLON {
         getUniform(uniformName: string): WebGLUniformLocation;
         getSamplers(): string[];
         getCompilationError(): string;
+        getVertexShaderSource(): string;
+        getFragmentShaderSource(): string;
         _loadVertexShader(vertex: any, callback: (data: any) => void): void;
         _loadFragmentShader(fragment: any, callback: (data: any) => void): void;
         private _dumpShadersName();
+        private _processShaderConversion(sourceCode, isFragment, callback);
         private _processIncludes(sourceCode, callback);
         private _processPrecision(source);
         private _prepareEffect(vertexSourceCode, fragmentSourceCode, attributesNames, defines, fallbacks?);
-        isSupported: boolean;
+        readonly isSupported: boolean;
         _bindTexture(channel: string, texture: WebGLTexture): void;
         setTexture(channel: string, texture: BaseTexture): void;
         setTextureArray(channel: string, textures: BaseTexture[]): void;
@@ -6313,6 +5197,8 @@ declare module BABYLON {
         setFloat4(uniformName: string, x: number, y: number, z: number, w: number): Effect;
         setColor3(uniformName: string, color3: Color3): Effect;
         setColor4(uniformName: string, color3: Color3, alpha: number): Effect;
+        private _recombineShader(node);
+        private _evaluateDefinesOnString(shaderString);
         static ShadersStore: {};
         static IncludesShadersStore: {};
     }
@@ -6341,18 +5227,18 @@ declare module BABYLON {
         toString(): string;
     }
     class Material {
-        name: string;
         private static _TriangleFillMode;
         private static _WireFrameFillMode;
         private static _PointFillMode;
-        static TriangleFillMode: number;
-        static WireFrameFillMode: number;
-        static PointFillMode: number;
+        static readonly TriangleFillMode: number;
+        static readonly WireFrameFillMode: number;
+        static readonly PointFillMode: number;
         private static _ClockWiseSideOrientation;
         private static _CounterClockWiseSideOrientation;
-        static ClockWiseSideOrientation: number;
-        static CounterClockWiseSideOrientation: number;
+        static readonly ClockWiseSideOrientation: number;
+        static readonly CounterClockWiseSideOrientation: number;
         id: string;
+        name: string;
         checkReadyOnEveryCall: boolean;
         checkReadyOnlyOnce: boolean;
         state: string;
@@ -6362,6 +5248,7 @@ declare module BABYLON {
         onCompiled: (effect: Effect) => void;
         onError: (effect: Effect, errors: string) => void;
         getRenderTargetTextures: () => SmartArray<RenderTargetTexture>;
+        doNotSerialize: boolean;
         /**
         * An event triggered when the material is disposed.
         * @type {BABYLON.Observable}
@@ -6370,12 +5257,17 @@ declare module BABYLON {
         private _onDisposeObserver;
         onDispose: () => void;
         /**
-        * An event triggered when the material is compiled.
+        * An event triggered when the material is bound.
         * @type {BABYLON.Observable}
         */
         onBindObservable: Observable<AbstractMesh>;
         private _onBindObserver;
         onBind: (Mesh: AbstractMesh) => void;
+        /**
+        * An event triggered when the material is unbound.
+        * @type {BABYLON.Observable}
+        */
+        onUnBindObservable: Observable<Material>;
         alphaMode: number;
         disableDepthWrite: boolean;
         fogEnabled: boolean;
@@ -6395,7 +5287,8 @@ declare module BABYLON {
          * subclasses should override adding information pertainent to themselves
          */
         toString(fullDetails?: boolean): string;
-        isFrozen: boolean;
+        getClassName(): string;
+        readonly isFrozen: boolean;
         freeze(): void;
         unfreeze(): void;
         isReady(mesh?: AbstractMesh, useInstances?: boolean): boolean;
@@ -6440,6 +5333,7 @@ declare module BABYLON {
         subMaterials: Material[];
         constructor(name: string, scene: Scene);
         getSubMaterial(index: any): Material;
+        getClassName(): string;
         isReady(mesh?: AbstractMesh): boolean;
         clone(name: string, cloneChildren?: boolean): MultiMaterial;
         serialize(): any;
@@ -6580,6 +5474,10 @@ declare module BABYLON {
          * AKA Occlusion Texture in other nomenclature.
          */
         ambientTexture: BaseTexture;
+        /**
+         * AKA Occlusion Texture Intensity in other nomenclature.
+         */
+        ambientTextureStrength: number;
         opacityTexture: BaseTexture;
         reflectionTexture: BaseTexture;
         emissiveTexture: BaseTexture;
@@ -6587,6 +5485,20 @@ declare module BABYLON {
          * AKA Specular texture in other nomenclature.
          */
         reflectivityTexture: BaseTexture;
+        /**
+         * Used to switch from specular/glossiness to metallic/roughness workflow.
+         */
+        metallicTexture: BaseTexture;
+        /**
+         * Specifies the metallic scalar of the metallic/roughness workflow.
+         * Can also be used to scale the metalness values of the metallic texture.
+         */
+        metallic: number;
+        /**
+         * Specifies the roughness scalar of the metallic/roughness workflow.
+         * Can also be used to scale the roughness values of the metallic texture.
+         */
+        roughness: number;
         bumpTexture: BaseTexture;
         lightmapTexture: BaseTexture;
         refractionTexture: BaseTexture;
@@ -6602,7 +5514,6 @@ declare module BABYLON {
         reflectionColor: Color3;
         emissiveColor: Color3;
         /**
-
          * AKA Glossiness in other nomenclature.
          */
         microSurface: number;
@@ -6644,6 +5555,14 @@ declare module BABYLON {
          * Specifies if the reflectivity texture contains the glossiness information in its alpha channel.
          */
         useMicroSurfaceFromReflectivityMapAlpha: boolean;
+        /**
+         * Specifies if the metallic texture contains the roughness information in its alpha channel.
+         */
+        useRoughnessFromMetallicTextureAlpha: boolean;
+        /**
+         * Specifies if the metallic texture contains the roughness information in its green channel.
+         */
+        useRoughnessFromMetallicTextureGreen: boolean;
         /**
          * In case the reflectivity map does not contain the microsurface information in its alpha channel,
          * The material will try to infer what glossiness each pixel should be.
@@ -6708,6 +5627,7 @@ declare module BABYLON {
          * @param scene The scene the material will be use in.
          */
         constructor(name: string, scene: Scene);
+        getClassName(): string;
         useLogarithmicDepth: boolean;
         needAlphaBlending(): boolean;
         needAlphaTesting(): boolean;
@@ -6751,9 +5671,11 @@ declare module BABYLON {
         private _matrices;
         private _matrices3x3;
         private _matrices2x2;
+        private _vectors3Arrays;
         private _cachedWorldViewMatrix;
         private _renderId;
         constructor(name: string, scene: Scene, shaderPath: any, options: any);
+        getClassName(): string;
         needAlphaBlending(): boolean;
         needAlphaTesting(): boolean;
         private _checkUniform(uniformName);
@@ -6769,6 +5691,8 @@ declare module BABYLON {
         setMatrix(name: string, value: Matrix): ShaderMaterial;
         setMatrix3x3(name: string, value: Float32Array): ShaderMaterial;
         setMatrix2x2(name: string, value: Float32Array): ShaderMaterial;
+        setArray3(name: string, value: number[]): ShaderMaterial;
+        private _checkCache(scene, mesh?, useInstances?);
         isReady(mesh?: AbstractMesh, useInstances?: boolean): boolean;
         bindOnlyWorldMatrix(world: Matrix): void;
         bind(world: Matrix, mesh?: Mesh): void;
@@ -6844,6 +5768,7 @@ declare module BABYLON {
         private _cachedDefines;
         private _useLogarithmicDepth;
         constructor(name: string, scene: Scene);
+        getClassName(): string;
         useLogarithmicDepth: boolean;
         needAlphaBlending(): boolean;
         needAlphaTesting(): boolean;
@@ -6874,687 +5799,17 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class SIMDVector3 {
-        static TransformCoordinatesToRefSIMD(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformCoordinatesFromFloatsToRefSIMD(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-    }
-    class SIMDMatrix {
-        multiplyToArraySIMD(other: Matrix, result: Matrix, offset?: number): void;
-        invertToRefSIMD(other: Matrix): Matrix;
-        static LookAtLHToRefSIMD(eyeRef: Vector3, targetRef: Vector3, upRef: Vector3, result: Matrix): void;
-    }
-    class SIMDHelper {
-        private static _isEnabled;
-        static IsEnabled: boolean;
-        static DisableSIMD(): void;
-        static EnableSIMD(): void;
-    }
-}
-
-declare module BABYLON {
-    const ToGammaSpace: number;
-    const ToLinearSpace: number;
-    const Epsilon: number;
-    class MathTools {
-        static WithinEpsilon(a: number, b: number, epsilon?: number): boolean;
-        static ToHex(i: number): string;
-        static Sign(value: number): number;
-        static Clamp(value: number, min?: number, max?: number): number;
-    }
-    class Color3 {
-        r: number;
-        g: number;
-        b: number;
-        constructor(r?: number, g?: number, b?: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        toArray(array: number[], index?: number): Color3;
-        toColor4(alpha?: number): Color4;
-        asArray(): number[];
-        toLuminance(): number;
-        multiply(otherColor: Color3): Color3;
-        multiplyToRef(otherColor: Color3, result: Color3): Color3;
-        equals(otherColor: Color3): boolean;
-        equalsFloats(r: number, g: number, b: number): boolean;
-        scale(scale: number): Color3;
-        scaleToRef(scale: number, result: Color3): Color3;
-        add(otherColor: Color3): Color3;
-        addToRef(otherColor: Color3, result: Color3): Color3;
-        subtract(otherColor: Color3): Color3;
-        subtractToRef(otherColor: Color3, result: Color3): Color3;
-        clone(): Color3;
-        copyFrom(source: Color3): Color3;
-        copyFromFloats(r: number, g: number, b: number): Color3;
-        toHexString(): string;
-        toLinearSpace(): Color3;
-        toLinearSpaceToRef(convertedColor: Color3): Color3;
-        toGammaSpace(): Color3;
-        toGammaSpaceToRef(convertedColor: Color3): Color3;
-        static FromHexString(hex: string): Color3;
-        static FromArray(array: number[], offset?: number): Color3;
-        static FromInts(r: number, g: number, b: number): Color3;
-        static Lerp(start: Color3, end: Color3, amount: number): Color3;
-        static Red(): Color3;
-        static Green(): Color3;
-        static Blue(): Color3;
-        static Black(): Color3;
-        static White(): Color3;
-        static Purple(): Color3;
-        static Magenta(): Color3;
-        static Yellow(): Color3;
-        static Gray(): Color3;
-    }
-    class Color4 {
-        r: number;
-        g: number;
-        b: number;
-        a: number;
-        constructor(r: number, g: number, b: number, a: number);
-        addInPlace(right: any): Color4;
-        asArray(): number[];
-        toArray(array: number[], index?: number): Color4;
-        add(right: Color4): Color4;
-        subtract(right: Color4): Color4;
-        subtractToRef(right: Color4, result: Color4): Color4;
-        scale(scale: number): Color4;
-        scaleToRef(scale: number, result: Color4): Color4;
-        /**
-          * Multipy an RGBA Color4 value by another and return a new Color4 object
-          * @param color The Color4 (RGBA) value to multiply by
-          * @returns A new Color4.
-          */
-        multiply(color: Color4): Color4;
-        /**
-         * Multipy an RGBA Color4 value by another and push the result in a reference value
-         * @param color The Color4 (RGBA) value to multiply by
-         * @param result The Color4 (RGBA) to fill the result in
-         * @returns the result Color4.
-         */
-        multiplyToRef(color: Color4, result: Color4): Color4;
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        clone(): Color4;
-        copyFrom(source: Color4): Color4;
-        toHexString(): string;
-        static FromHexString(hex: string): Color4;
-        static Lerp(left: Color4, right: Color4, amount: number): Color4;
-        static LerpToRef(left: Color4, right: Color4, amount: number, result: Color4): void;
-        static FromArray(array: number[], offset?: number): Color4;
-        static FromInts(r: number, g: number, b: number, a: number): Color4;
-        static CheckColors4(colors: number[], count: number): number[];
-    }
-    class Vector2 {
-        x: number;
-        y: number;
-        constructor(x: number, y: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        toArray(array: number[] | Float32Array, index?: number): Vector2;
-        asArray(): number[];
-        copyFrom(source: Vector2): Vector2;
-        copyFromFloats(x: number, y: number): Vector2;
-        add(otherVector: Vector2): Vector2;
-        addToRef(otherVector: Vector2, result: Vector2): Vector2;
-        addVector3(otherVector: Vector3): Vector2;
-        subtract(otherVector: Vector2): Vector2;
-        subtractToRef(otherVector: Vector2, result: Vector2): Vector2;
-        subtractInPlace(otherVector: Vector2): Vector2;
-        multiplyInPlace(otherVector: Vector2): Vector2;
-        multiply(otherVector: Vector2): Vector2;
-        multiplyToRef(otherVector: Vector2, result: Vector2): Vector2;
-        multiplyByFloats(x: number, y: number): Vector2;
-        divide(otherVector: Vector2): Vector2;
-        divideToRef(otherVector: Vector2, result: Vector2): Vector2;
-        negate(): Vector2;
-        scaleInPlace(scale: number): Vector2;
-        scale(scale: number): Vector2;
-        equals(otherVector: Vector2): boolean;
-        equalsWithEpsilon(otherVector: Vector2, epsilon?: number): boolean;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector2;
-        clone(): Vector2;
-        static Zero(): Vector2;
-        static FromArray(array: number[] | Float32Array, offset?: number): Vector2;
-        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector2): void;
-        static CatmullRom(value1: Vector2, value2: Vector2, value3: Vector2, value4: Vector2, amount: number): Vector2;
-        static Clamp(value: Vector2, min: Vector2, max: Vector2): Vector2;
-        static Hermite(value1: Vector2, tangent1: Vector2, value2: Vector2, tangent2: Vector2, amount: number): Vector2;
-        static Lerp(start: Vector2, end: Vector2, amount: number): Vector2;
-        static Dot(left: Vector2, right: Vector2): number;
-        static Normalize(vector: Vector2): Vector2;
-        static Minimize(left: Vector2, right: Vector2): Vector2;
-        static Maximize(left: Vector2, right: Vector2): Vector2;
-        static Transform(vector: Vector2, transformation: Matrix): Vector2;
-        static TransformToRef(vector: Vector2, transformation: Matrix, result: Vector2): void;
-        static PointInTriangle(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): boolean;
-        static Distance(value1: Vector2, value2: Vector2): number;
-        static DistanceSquared(value1: Vector2, value2: Vector2): number;
-        static DistanceOfPointFromSegment(p: Vector2, segA: Vector2, segB: Vector2): number;
-    }
-    class Vector3 {
-        x: number;
-        y: number;
-        z: number;
-        constructor(x: number, y: number, z: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        toArray(array: number[] | Float32Array, index?: number): Vector3;
-        toQuaternion(): Quaternion;
-        addInPlace(otherVector: Vector3): Vector3;
-        add(otherVector: Vector3): Vector3;
-        addToRef(otherVector: Vector3, result: Vector3): Vector3;
-        subtractInPlace(otherVector: Vector3): Vector3;
-        subtract(otherVector: Vector3): Vector3;
-        subtractToRef(otherVector: Vector3, result: Vector3): Vector3;
-        subtractFromFloats(x: number, y: number, z: number): Vector3;
-        subtractFromFloatsToRef(x: number, y: number, z: number, result: Vector3): Vector3;
-        negate(): Vector3;
-        scaleInPlace(scale: number): Vector3;
-        scale(scale: number): Vector3;
-        scaleToRef(scale: number, result: Vector3): void;
-        equals(otherVector: Vector3): boolean;
-        equalsWithEpsilon(otherVector: Vector3, epsilon?: number): boolean;
-        equalsToFloats(x: number, y: number, z: number): boolean;
-        multiplyInPlace(otherVector: Vector3): Vector3;
-        multiply(otherVector: Vector3): Vector3;
-        multiplyToRef(otherVector: Vector3, result: Vector3): Vector3;
-        multiplyByFloats(x: number, y: number, z: number): Vector3;
-        divide(otherVector: Vector3): Vector3;
-        divideToRef(otherVector: Vector3, result: Vector3): Vector3;
-        MinimizeInPlace(other: Vector3): Vector3;
-        MaximizeInPlace(other: Vector3): Vector3;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector3;
-        clone(): Vector3;
-        copyFrom(source: Vector3): Vector3;
-        copyFromFloats(x: number, y: number, z: number): Vector3;
-        static GetClipFactor(vector0: Vector3, vector1: Vector3, axis: Vector3, size: any): number;
-        static FromArray(array: number[] | Float32Array, offset?: number): Vector3;
-        static FromFloatArray(array: Float32Array, offset?: number): Vector3;
-        static FromArrayToRef(array: number[] | Float32Array, offset: number, result: Vector3): void;
-        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector3): void;
-        static FromFloatsToRef(x: number, y: number, z: number, result: Vector3): void;
-        static Zero(): Vector3;
-        static Up(): Vector3;
-        static TransformCoordinates(vector: Vector3, transformation: Matrix): Vector3;
-        static TransformCoordinatesToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformCoordinatesFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-        static TransformNormal(vector: Vector3, transformation: Matrix): Vector3;
-        static TransformNormalToRef(vector: Vector3, transformation: Matrix, result: Vector3): void;
-        static TransformNormalFromFloatsToRef(x: number, y: number, z: number, transformation: Matrix, result: Vector3): void;
-        static CatmullRom(value1: Vector3, value2: Vector3, value3: Vector3, value4: Vector3, amount: number): Vector3;
-        static Clamp(value: Vector3, min: Vector3, max: Vector3): Vector3;
-        static Hermite(value1: Vector3, tangent1: Vector3, value2: Vector3, tangent2: Vector3, amount: number): Vector3;
-        static Lerp(start: Vector3, end: Vector3, amount: number): Vector3;
-        static Dot(left: Vector3, right: Vector3): number;
-        static Cross(left: Vector3, right: Vector3): Vector3;
-        static CrossToRef(left: Vector3, right: Vector3, result: Vector3): void;
-        static Normalize(vector: Vector3): Vector3;
-        static NormalizeToRef(vector: Vector3, result: Vector3): void;
-        private static _viewportMatrixCache;
-        private static _matrixCache;
-        static Project(vector: Vector3, world: Matrix, transform: Matrix, viewport: Viewport): Vector3;
-        static UnprojectFromTransform(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, transform: Matrix): Vector3;
-        static Unproject(source: Vector3, viewportWidth: number, viewportHeight: number, world: Matrix, view: Matrix, projection: Matrix): Vector3;
-        static Minimize(left: Vector3, right: Vector3): Vector3;
-        static Maximize(left: Vector3, right: Vector3): Vector3;
-        static Distance(value1: Vector3, value2: Vector3): number;
-        static DistanceSquared(value1: Vector3, value2: Vector3): number;
-        static Center(value1: Vector3, value2: Vector3): Vector3;
-        /**
-         * Given three orthogonal normalized left-handed oriented Vector3 axis in space (target system),
-         * RotationFromAxis() returns the rotation Euler angles (ex : rotation.x, rotation.y, rotation.z) to apply
-         * to something in order to rotate it from its local system to the given target system.
-         */
-        static RotationFromAxis(axis1: Vector3, axis2: Vector3, axis3: Vector3): Vector3;
-        /**
-         * The same than RotationFromAxis but updates the passed ref Vector3 parameter.
-         */
-        static RotationFromAxisToRef(axis1: Vector3, axis2: Vector3, axis3: Vector3, ref: Vector3): void;
-    }
-    class Vector4 {
-        x: number;
-        y: number;
-        z: number;
-        w: number;
-        constructor(x: number, y: number, z: number, w: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        toArray(array: number[], index?: number): Vector4;
-        addInPlace(otherVector: Vector4): Vector4;
-        add(otherVector: Vector4): Vector4;
-        addToRef(otherVector: Vector4, result: Vector4): Vector4;
-        subtractInPlace(otherVector: Vector4): Vector4;
-        subtract(otherVector: Vector4): Vector4;
-        subtractToRef(otherVector: Vector4, result: Vector4): Vector4;
-        subtractFromFloats(x: number, y: number, z: number, w: number): Vector4;
-        subtractFromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): Vector4;
-        negate(): Vector4;
-        scaleInPlace(scale: number): Vector4;
-        scale(scale: number): Vector4;
-        scaleToRef(scale: number, result: Vector4): void;
-        equals(otherVector: Vector4): boolean;
-        equalsWithEpsilon(otherVector: Vector4, epsilon?: number): boolean;
-        equalsToFloats(x: number, y: number, z: number, w: number): boolean;
-        multiplyInPlace(otherVector: Vector4): Vector4;
-        multiply(otherVector: Vector4): Vector4;
-        multiplyToRef(otherVector: Vector4, result: Vector4): Vector4;
-        multiplyByFloats(x: number, y: number, z: number, w: number): Vector4;
-        divide(otherVector: Vector4): Vector4;
-        divideToRef(otherVector: Vector4, result: Vector4): Vector4;
-        MinimizeInPlace(other: Vector4): Vector4;
-        MaximizeInPlace(other: Vector4): Vector4;
-        length(): number;
-        lengthSquared(): number;
-        normalize(): Vector4;
-        toVector3(): Vector3;
-        clone(): Vector4;
-        copyFrom(source: Vector4): Vector4;
-        copyFromFloats(x: number, y: number, z: number, w: number): Vector4;
-        static FromArray(array: number[], offset?: number): Vector4;
-        static FromArrayToRef(array: number[], offset: number, result: Vector4): void;
-        static FromFloatArrayToRef(array: Float32Array, offset: number, result: Vector4): void;
-        static FromFloatsToRef(x: number, y: number, z: number, w: number, result: Vector4): void;
-        static Zero(): Vector4;
-        static Normalize(vector: Vector4): Vector4;
-        static NormalizeToRef(vector: Vector4, result: Vector4): void;
-        static Minimize(left: Vector4, right: Vector4): Vector4;
-        static Maximize(left: Vector4, right: Vector4): Vector4;
-        static Distance(value1: Vector4, value2: Vector4): number;
-        static DistanceSquared(value1: Vector4, value2: Vector4): number;
-        static Center(value1: Vector4, value2: Vector4): Vector4;
-    }
-    interface ISize {
-        width: number;
-        height: number;
-    }
-    class Size implements ISize {
-        width: number;
-        height: number;
-        constructor(width: number, height: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        copyFrom(src: Size): void;
-        copyFromFloats(width: number, height: number): void;
-        multiplyByFloats(w: number, h: number): Size;
-        clone(): Size;
-        equals(other: Size): boolean;
-        surface: number;
-        static Zero(): Size;
-        add(otherSize: Size): Size;
-        substract(otherSize: Size): Size;
-        static Lerp(start: Size, end: Size, amount: number): Size;
-    }
-    class Quaternion {
-        x: number;
-        y: number;
-        z: number;
-        w: number;
-        constructor(x?: number, y?: number, z?: number, w?: number);
-        toString(): string;
-        getClassName(): string;
-        getHashCode(): number;
-        asArray(): number[];
-        equals(otherQuaternion: Quaternion): boolean;
-        clone(): Quaternion;
-        copyFrom(other: Quaternion): Quaternion;
-        copyFromFloats(x: number, y: number, z: number, w: number): Quaternion;
-        add(other: Quaternion): Quaternion;
-        subtract(other: Quaternion): Quaternion;
-        scale(value: number): Quaternion;
-        multiply(q1: Quaternion): Quaternion;
-        multiplyToRef(q1: Quaternion, result: Quaternion): Quaternion;
-        multiplyInPlace(q1: Quaternion): Quaternion;
-        conjugateToRef(ref: Quaternion): Quaternion;
-        conjugateInPlace(): Quaternion;
-        conjugate(): Quaternion;
-        length(): number;
-        normalize(): Quaternion;
-        toEulerAngles(order?: string): Vector3;
-        toEulerAnglesToRef(result: Vector3, order?: string): Quaternion;
-        toRotationMatrix(result: Matrix): Quaternion;
-        fromRotationMatrix(matrix: Matrix): Quaternion;
-        static FromRotationMatrix(matrix: Matrix): Quaternion;
-        static FromRotationMatrixToRef(matrix: Matrix, result: Quaternion): void;
-        static Inverse(q: Quaternion): Quaternion;
-        static Identity(): Quaternion;
-        static RotationAxis(axis: Vector3, angle: number): Quaternion;
-        static RotationAxisToRef(axis: Vector3, angle: number, result: Quaternion): Quaternion;
-        static FromArray(array: number[], offset?: number): Quaternion;
-        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Quaternion;
-        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Quaternion): void;
-        static RotationAlphaBetaGamma(alpha: number, beta: number, gamma: number): Quaternion;
-        static RotationAlphaBetaGammaToRef(alpha: number, beta: number, gamma: number, result: Quaternion): void;
-        static Slerp(left: Quaternion, right: Quaternion, amount: number): Quaternion;
-    }
-    class Matrix {
-        private static _tempQuaternion;
-        private static _xAxis;
-        private static _yAxis;
-        private static _zAxis;
-        m: Float32Array;
-        isIdentity(): boolean;
-        determinant(): number;
-        toArray(): Float32Array;
-        asArray(): Float32Array;
-        invert(): Matrix;
-        reset(): Matrix;
-        add(other: Matrix): Matrix;
-        addToRef(other: Matrix, result: Matrix): Matrix;
-        addToSelf(other: Matrix): Matrix;
-        invertToRef(other: Matrix): Matrix;
-        setTranslation(vector3: Vector3): Matrix;
-        getTranslation(): Vector3;
-        multiply(other: Matrix): Matrix;
-        copyFrom(other: Matrix): Matrix;
-        copyToArray(array: Float32Array, offset?: number): Matrix;
-        multiplyToRef(other: Matrix, result: Matrix): Matrix;
-        multiplyToArray(other: Matrix, result: Float32Array, offset: number): Matrix;
-        equals(value: Matrix): boolean;
-        clone(): Matrix;
-        getClassName(): string;
-        getHashCode(): number;
-        decompose(scale: Vector3, rotation: Quaternion, translation: Vector3): boolean;
-        static FromArray(array: number[], offset?: number): Matrix;
-        static FromArrayToRef(array: number[], offset: number, result: Matrix): void;
-        static FromFloat32ArrayToRefScaled(array: Float32Array, offset: number, scale: number, result: Matrix): void;
-        static FromValuesToRef(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number, result: Matrix): void;
-        getRow(index: number): Vector4;
-        setRow(index: number, row: Vector4): Matrix;
-        static FromValues(initialM11: number, initialM12: number, initialM13: number, initialM14: number, initialM21: number, initialM22: number, initialM23: number, initialM24: number, initialM31: number, initialM32: number, initialM33: number, initialM34: number, initialM41: number, initialM42: number, initialM43: number, initialM44: number): Matrix;
-        static Compose(scale: Vector3, rotation: Quaternion, translation: Vector3): Matrix;
-        static Identity(): Matrix;
-        static IdentityToRef(result: Matrix): void;
-        static Zero(): Matrix;
-        static RotationX(angle: number): Matrix;
-        static Invert(source: Matrix): Matrix;
-        static RotationXToRef(angle: number, result: Matrix): void;
-        static RotationY(angle: number): Matrix;
-        static RotationYToRef(angle: number, result: Matrix): void;
-        static RotationZ(angle: number): Matrix;
-        static RotationZToRef(angle: number, result: Matrix): void;
-        static RotationAxis(axis: Vector3, angle: number): Matrix;
-        static RotationAxisToRef(axis: Vector3, angle: number, result: Matrix): void;
-        static RotationYawPitchRoll(yaw: number, pitch: number, roll: number): Matrix;
-        static RotationYawPitchRollToRef(yaw: number, pitch: number, roll: number, result: Matrix): void;
-        static Scaling(x: number, y: number, z: number): Matrix;
-        static ScalingToRef(x: number, y: number, z: number, result: Matrix): void;
-        static Translation(x: number, y: number, z: number): Matrix;
-        static TranslationToRef(x: number, y: number, z: number, result: Matrix): void;
-        static Lerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
-        static DecomposeLerp(startValue: Matrix, endValue: Matrix, gradient: number): Matrix;
-        static LookAtLH(eye: Vector3, target: Vector3, up: Vector3): Matrix;
-        static LookAtLHToRef(eye: Vector3, target: Vector3, up: Vector3, result: Matrix): void;
-        static OrthoLH(width: number, height: number, znear: number, zfar: number): Matrix;
-        static OrthoLHToRef(width: number, height: number, znear: number, zfar: number, result: Matrix): void;
-        static OrthoOffCenterLH(left: number, right: number, bottom: number, top: number, znear: number, zfar: number): Matrix;
-        static OrthoOffCenterLHToRef(left: number, right: any, bottom: number, top: number, znear: number, zfar: number, result: Matrix): void;
-        static PerspectiveLH(width: number, height: number, znear: number, zfar: number): Matrix;
-        static PerspectiveFovLH(fov: number, aspect: number, znear: number, zfar: number): Matrix;
-        static PerspectiveFovLHToRef(fov: number, aspect: number, znear: number, zfar: number, result: Matrix, isVerticalFovFixed?: boolean): void;
-        static GetFinalMatrix(viewport: Viewport, world: Matrix, view: Matrix, projection: Matrix, zmin: number, zmax: number): Matrix;
-        static GetAsMatrix2x2(matrix: Matrix): Float32Array;
-        static GetAsMatrix3x3(matrix: Matrix): Float32Array;
-        static Transpose(matrix: Matrix): Matrix;
-        static Reflection(plane: Plane): Matrix;
-        static ReflectionToRef(plane: Plane, result: Matrix): void;
-    }
-    class Plane {
-        normal: Vector3;
-        d: number;
-        constructor(a: number, b: number, c: number, d: number);
-        asArray(): number[];
-        clone(): Plane;
-        getClassName(): string;
-        getHashCode(): number;
-        normalize(): Plane;
-        transform(transformation: Matrix): Plane;
-        dotCoordinate(point: any): number;
-        copyFromPoints(point1: Vector3, point2: Vector3, point3: Vector3): Plane;
-        isFrontFacingTo(direction: Vector3, epsilon: number): boolean;
-        signedDistanceTo(point: Vector3): number;
-        static FromArray(array: number[]): Plane;
-        static FromPoints(point1: any, point2: any, point3: any): Plane;
-        static FromPositionAndNormal(origin: Vector3, normal: Vector3): Plane;
-        static SignedDistanceToPlaneFromPositionAndNormal(origin: Vector3, normal: Vector3, point: Vector3): number;
-    }
-    class Viewport {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        constructor(x: number, y: number, width: number, height: number);
-        toGlobal(renderWidth: number, renderHeight: number): Viewport;
-    }
-    class Frustum {
-        static GetPlanes(transform: Matrix): Plane[];
-        static GetPlanesToRef(transform: Matrix, frustumPlanes: Plane[]): void;
-    }
-    enum Space {
-        LOCAL = 0,
-        WORLD = 1,
-    }
-    class Axis {
-        static X: Vector3;
-        static Y: Vector3;
-        static Z: Vector3;
-    }
-    class BezierCurve {
-        static interpolate(t: number, x1: number, y1: number, x2: number, y2: number): number;
-    }
-    enum Orientation {
-        CW = 0,
-        CCW = 1,
-    }
-    class Angle {
-        private _radians;
-        constructor(radians: number);
-        degrees: () => number;
-        radians: () => number;
-        static BetweenTwoPoints(a: Vector2, b: Vector2): Angle;
-        static FromRadians(radians: number): Angle;
-        static FromDegrees(degrees: number): Angle;
-    }
-    class Arc2 {
-        startPoint: Vector2;
-        midPoint: Vector2;
-        endPoint: Vector2;
-        centerPoint: Vector2;
-        radius: number;
-        angle: Angle;
-        startAngle: Angle;
-        orientation: Orientation;
-        constructor(startPoint: Vector2, midPoint: Vector2, endPoint: Vector2);
-    }
-    class Path2 {
-        private _points;
-        private _length;
-        closed: boolean;
-        constructor(x: number, y: number);
-        addLineTo(x: number, y: number): Path2;
-        addArcTo(midX: number, midY: number, endX: number, endY: number, numberOfSegments?: number): Path2;
-        close(): Path2;
-        length(): number;
-        getPoints(): Vector2[];
-        getPointAtLengthPosition(normalizedLengthPosition: number): Vector2;
-        static StartingAt(x: number, y: number): Path2;
-    }
-    class Path3D {
-        path: Vector3[];
-        private _curve;
-        private _distances;
-        private _tangents;
-        private _normals;
-        private _binormals;
-        private _raw;
-        /**
-        * new Path3D(path, normal, raw)
-        * Creates a Path3D. A Path3D is a logical math object, so not a mesh.
-        * please read the description in the tutorial :  http://doc.babylonjs.com/tutorials/How_to_use_Path3D
-        * path : an array of Vector3, the curve axis of the Path3D
-        * normal (optional) : Vector3, the first wanted normal to the curve. Ex (0, 1, 0) for a vertical normal.
-        * raw (optional, default false) : boolean, if true the returned Path3D isn't normalized. Useful to depict path acceleration or speed.
-        */
-        constructor(path: Vector3[], firstNormal?: Vector3, raw?: boolean);
-        /**
-         * Returns the Path3D array of successive Vector3 designing its curve.
-         */
-        getCurve(): Vector3[];
-        /**
-         * Returns an array populated with tangent vectors on each Path3D curve point.
-         */
-        getTangents(): Vector3[];
-        /**
-         * Returns an array populated with normal vectors on each Path3D curve point.
-         */
-        getNormals(): Vector3[];
-        /**
-         * Returns an array populated with binormal vectors on each Path3D curve point.
-         */
-        getBinormals(): Vector3[];
-        /**
-         * Returns an array populated with distances (float) of the i-th point from the first curve point.
-         */
-        getDistances(): number[];
-        /**
-         * Forces the Path3D tangent, normal, binormal and distance recomputation.
-         * Returns the same object updated.
-         */
-        update(path: Vector3[], firstNormal?: Vector3): Path3D;
-        private _compute(firstNormal);
-        private _getFirstNonNullVector(index);
-        private _getLastNonNullVector(index);
-        private _normalVector(v0, vt, va);
-    }
-    class Curve3 {
-        private _points;
-        private _length;
-        /**
-         * Returns a Curve3 object along a Quadratic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#quadratic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Quadratic Bezier
-         * @param v1 (Vector3) the control point
-         * @param v2 (Vector3) the end point of the Quadratic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateQuadraticBezier(v0: Vector3, v1: Vector3, v2: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Cubic Bezier curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#cubic-bezier-curve
-         * @param v0 (Vector3) the origin point of the Cubic Bezier
-         * @param v1 (Vector3) the first control point
-         * @param v2 (Vector3) the second control point
-         * @param v3 (Vector3) the end point of the Cubic Bezier
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateCubicBezier(v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, nbPoints: number): Curve3;
-        /**
-         * Returns a Curve3 object along a Hermite Spline curve : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#hermite-spline
-         * @param p1 (Vector3) the origin point of the Hermite Spline
-         * @param t1 (Vector3) the tangent vector at the origin point
-         * @param p2 (Vector3) the end point of the Hermite Spline
-         * @param t2 (Vector3) the tangent vector at the end point
-         * @param nbPoints (integer) the wanted number of points in the curve
-         */
-        static CreateHermiteSpline(p1: Vector3, t1: Vector3, p2: Vector3, t2: Vector3, nbPoints: number): Curve3;
-        /**
-         * A Curve3 object is a logical object, so not a mesh, to handle curves in the 3D geometric space.
-         * A Curve3 is designed from a series of successive Vector3.
-         * Tuto : http://doc.babylonjs.com/tutorials/How_to_use_Curve3#curve3-object
-         */
-        constructor(points: Vector3[]);
-        /**
-         * Returns the Curve3 stored array of successive Vector3
-         */
-        getPoints(): Vector3[];
-        /**
-         * Returns the computed length (float) of the curve.
-         */
-        length(): number;
-        /**
-         * Returns a new instance of Curve3 object : var curve = curveA.continue(curveB);
-         * This new Curve3 is built by translating and sticking the curveB at the end of the curveA.
-         * curveA and curveB keep unchanged.
-         */
-        continue(curve: Curve3): Curve3;
-        private _computeLength(path);
-    }
-    class SphericalHarmonics {
-        L00: Vector3;
-        L1_1: Vector3;
-        L10: Vector3;
-        L11: Vector3;
-        L2_2: Vector3;
-        L2_1: Vector3;
-        L20: Vector3;
-        L21: Vector3;
-        L22: Vector3;
-        addLight(direction: Vector3, color: Color3, deltaSolidAngle: number): void;
-        scale(scale: number): void;
-    }
-    class SphericalPolynomial {
-        x: Vector3;
-        y: Vector3;
-        z: Vector3;
-        xx: Vector3;
-        yy: Vector3;
-        zz: Vector3;
-        xy: Vector3;
-        yz: Vector3;
-        zx: Vector3;
-        addAmbient(color: Color3): void;
-        static getSphericalPolynomialFromHarmonics(harmonics: SphericalHarmonics): SphericalPolynomial;
-    }
-    class PositionNormalVertex {
-        position: Vector3;
-        normal: Vector3;
-        constructor(position?: Vector3, normal?: Vector3);
-        clone(): PositionNormalVertex;
-    }
-    class PositionNormalTextureVertex {
-        position: Vector3;
-        normal: Vector3;
-        uv: Vector2;
-        constructor(position?: Vector3, normal?: Vector3, uv?: Vector2);
-        clone(): PositionNormalTextureVertex;
-    }
-    class Tmp {
-        static Color3: Color3[];
-        static Vector2: Vector2[];
-        static Vector3: Vector3[];
-        static Vector4: Vector4[];
-        static Quaternion: Quaternion[];
-        static Matrix: Matrix[];
-    }
-}
-
-declare module BABYLON {
     class AbstractMesh extends Node implements IDisposable, ICullable {
         private static _BILLBOARDMODE_NONE;
         private static _BILLBOARDMODE_X;
         private static _BILLBOARDMODE_Y;
         private static _BILLBOARDMODE_Z;
         private static _BILLBOARDMODE_ALL;
-        static BILLBOARDMODE_NONE: number;
-        static BILLBOARDMODE_X: number;
-        static BILLBOARDMODE_Y: number;
-        static BILLBOARDMODE_Z: number;
-        static BILLBOARDMODE_ALL: number;
-        /**
-        * An event triggered when the mesh is disposed.
-        * @type {BABYLON.Observable}
-        */
-        onDisposeObservable: Observable<AbstractMesh>;
-        private _onDisposeObserver;
-        onDispose: () => void;
+        static readonly BILLBOARDMODE_NONE: number;
+        static readonly BILLBOARDMODE_X: number;
+        static readonly BILLBOARDMODE_Y: number;
+        static readonly BILLBOARDMODE_Z: number;
+        static readonly BILLBOARDMODE_ALL: number;
         /**
         * An event triggered when this mesh collides with another one
         * @type {BABYLON.Observable}
@@ -7652,6 +5907,7 @@ declare module BABYLON {
         _bonesTransformMatrices: Float32Array;
         skeleton: Skeleton;
         constructor(name: string, scene: Scene);
+        getClassName(): string;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
@@ -7667,7 +5923,7 @@ declare module BABYLON {
         getPoseMatrix(): Matrix;
         disableEdgesRendering(): void;
         enableEdgesRendering(epsilon?: number, checkVerticesInsteadOfIndices?: boolean): void;
-        isBlocked: boolean;
+        readonly isBlocked: boolean;
         getLOD(camera: Camera): AbstractMesh;
         getTotalVertices(): number;
         getIndices(): number[] | Int32Array;
@@ -7675,16 +5931,16 @@ declare module BABYLON {
         isVerticesDataPresent(kind: string): boolean;
         getBoundingInfo(): BoundingInfo;
         setBoundingInfo(boundingInfo: BoundingInfo): void;
-        useBones: boolean;
+        readonly useBones: boolean;
         _preActivate(): void;
         _preActivateForIntermediateRendering(renderId: number): void;
         _activate(renderId: number): void;
         getWorldMatrix(): Matrix;
-        worldMatrixFromCache: Matrix;
-        absolutePosition: Vector3;
+        readonly worldMatrixFromCache: Matrix;
+        readonly absolutePosition: Vector3;
         freezeWorldMatrix(): void;
         unfreezeWorldMatrix(): void;
-        isWorldMatrixFrozen: boolean;
+        readonly isWorldMatrixFrozen: boolean;
         private static _rotationAxisCache;
         rotate(axis: Vector3, amount: number, space?: Space): void;
         translate(axis: Vector3, distance: number, space?: Space): void;
@@ -7747,7 +6003,7 @@ declare module BABYLON {
         detachFromBone(): void;
         isInFrustum(frustumPlanes: Plane[]): boolean;
         isCompletelyInFrustum(frustumPlanes: Plane[]): boolean;
-        intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean;
+        intersectsMesh(mesh: AbstractMesh | SolidParticle, precise?: boolean): boolean;
         intersectsPoint(point: Vector3): boolean;
         /**
          *  @Deprecated. Use new PhysicsImpostor instead.
@@ -7796,6 +6052,16 @@ declare module BABYLON {
         clone(name: string, newParent: Node, doNotCloneChildren?: boolean): AbstractMesh;
         releaseSubMeshes(): void;
         dispose(doNotRecurse?: boolean): void;
+        getDirection(localAxis: Vector3): Vector3;
+        getDirectionToRef(localAxis: Vector3, result: Vector3): void;
+        setPivotPoint(point: Vector3, space?: Space): void;
+        getPivotPoint(): Vector3;
+        getPivotPointToRef(result: Vector3): void;
+        getAbsolutePivotPoint(): Vector3;
+        setParent(mesh: AbstractMesh, keepWorldPositionRotation?: boolean): void;
+        addChild(mesh: AbstractMesh, keepWorldPositionRotation?: boolean): void;
+        removeChild(mesh: AbstractMesh, keepWorldPositionRotation?: boolean): void;
+        getAbsolutePivotPointToRef(result: Vector3): void;
     }
 }
 
@@ -7867,25 +6133,28 @@ declare module BABYLON {
         _boundingInfo: BoundingInfo;
         _delayLoadingFunction: (any: any, geometry: Geometry) => void;
         _softwareSkinningRenderId: number;
+        private _vertexArrayObjects;
         /**
          *  The Bias Vector to apply on the bounding elements (box/sphere), the max extend is computed as v += v * bias.x + bias.y, the min is computed as v -= v * bias.x + bias.y
          * @returns The Bias Vector
          */
         boundingBias: Vector2;
         constructor(id: string, scene: Scene, vertexData?: VertexData, updatable?: boolean, mesh?: Mesh);
-        extend: {
+        readonly extend: {
             minimum: Vector3;
             maximum: Vector3;
         };
         getScene(): Scene;
         getEngine(): Engine;
         isReady(): boolean;
+        readonly doNotSerialize: boolean;
         setAllVerticesData(vertexData: VertexData, updatable?: boolean): void;
         setVerticesData(kind: string, data: number[] | Float32Array, updatable?: boolean, stride?: number): void;
         setVerticesBuffer(buffer: VertexBuffer): void;
         updateVerticesDataDirectly(kind: string, data: Float32Array, offset: number): void;
         updateVerticesData(kind: string, data: number[] | Float32Array, updateExtends?: boolean): void;
         private updateBoundingInfo(updateExtends, data);
+        _bind(effect: Effect, indexToBind?: WebGLBuffer): void;
         getTotalVertices(): number;
         getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Float32Array;
         getVertexBuffer(kind: string): VertexBuffer;
@@ -7910,11 +6179,18 @@ declare module BABYLON {
          */
         toLeftHanded(): void;
         isDisposed(): boolean;
+        private _disposeVertexArrayObjects();
         dispose(): void;
         copy(id: string): Geometry;
         serialize(): any;
         serializeVerticeData(): any;
         static ExtractFromMesh(mesh: Mesh, id: string): Geometry;
+        /**
+         * You should now use Tools.RandomId(), this method is still here for legacy reasons.
+         * Implementation from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#answer-2117523
+         * Be aware Math.random() could cause collisions, but:
+         * "All but 6 of the 128 bits of the ID are randomly generated, which means that for any two ids, there's a 1 in 2^^122 (or 5.3x10^^36) chance they'll collide"
+         */
         static RandomId(): string;
         static ImportGeometry(parsedGeometry: any, mesh: Mesh): void;
         static Parse(parsedVertexData: any, scene: Scene, rootUrl: string): Geometry;
@@ -8058,7 +6334,8 @@ declare module BABYLON {
         generateOctree: boolean;
         private _worldInverse;
         private _heightQuads;
-        _subdivisions: number;
+        _subdivisionsX: number;
+        _subdivisionsY: number;
         _width: number;
         _height: number;
         _minX: number;
@@ -8066,7 +6343,10 @@ declare module BABYLON {
         _minZ: number;
         _maxZ: number;
         constructor(name: string, scene: Scene);
-        subdivisions: number;
+        getClassName(): string;
+        readonly subdivisions: number;
+        readonly subdivisionsX: number;
+        readonly subdivisionsY: number;
         optimize(chunksCount: number, octreeBlocksSize?: number): void;
         /**
          * Returns a height (y) value in the Worl system :
@@ -8109,17 +6389,18 @@ declare module BABYLON {
         private _sourceMesh;
         private _currentLOD;
         constructor(name: string, source: Mesh);
-        receiveShadows: boolean;
-        material: Material;
-        visibility: number;
-        skeleton: Skeleton;
-        renderingGroupId: number;
+        getClassName(): string;
+        readonly receiveShadows: boolean;
+        readonly material: Material;
+        readonly visibility: number;
+        readonly skeleton: Skeleton;
+        readonly renderingGroupId: number;
         getTotalVertices(): number;
-        sourceMesh: Mesh;
+        readonly sourceMesh: Mesh;
         getVerticesData(kind: string, copyWhenShared?: boolean): number[] | Float32Array;
         isVerticesDataPresent(kind: string): boolean;
         getIndices(): number[] | Int32Array;
-        _positions: Vector3[];
+        readonly _positions: Vector3[];
         refreshBoundingInfo(): void;
         _preActivate(): void;
         _activate(renderId: number): void;
@@ -8151,8 +6432,9 @@ declare module BABYLON {
         private _intersectionThreshold;
         private _colorShader;
         constructor(name: string, scene: Scene, parent?: Node, source?: LinesMesh, doNotCloneChildren?: boolean);
-        material: Material;
-        checkCollisions: boolean;
+        getClassName(): string;
+        readonly material: Material;
+        readonly checkCollisions: boolean;
         createInstance(name: string): InstancedMesh;
         _bind(subMesh: SubMesh, effect: Effect, fillMode: number): void;
         _draw(subMesh: SubMesh, fillMode: number, instancesCount?: number): void;
@@ -8179,35 +6461,35 @@ declare module BABYLON {
         /**
          * Mesh side orientation : usually the external or front surface
          */
-        static FRONTSIDE: number;
+        static readonly FRONTSIDE: number;
         /**
          * Mesh side orientation : usually the internal or back surface
          */
-        static BACKSIDE: number;
+        static readonly BACKSIDE: number;
         /**
          * Mesh side orientation : both internal and external or front and back surfaces
          */
-        static DOUBLESIDE: number;
+        static readonly DOUBLESIDE: number;
         /**
          * Mesh side orientation : by default, `FRONTSIDE`
          */
-        static DEFAULTSIDE: number;
+        static readonly DEFAULTSIDE: number;
         /**
          * Mesh cap setting : no cap
          */
-        static NO_CAP: number;
+        static readonly NO_CAP: number;
         /**
          * Mesh cap setting : one cap at the beginning of the mesh
          */
-        static CAP_START: number;
+        static readonly CAP_START: number;
         /**
          * Mesh cap setting : one cap at the end of the mesh
          */
-        static CAP_END: number;
+        static readonly CAP_END: number;
         /**
          * Mesh cap setting : two caps, one at the beginning  and one at the end of the mesh
          */
-        static CAP_ALL: number;
+        static readonly CAP_ALL: number;
         /**
          * An event triggered before rendering the mesh
          * @type {BABYLON.Observable}
@@ -8247,6 +6529,33 @@ declare module BABYLON {
         private _areNormalsFrozen;
         private _sourcePositions;
         private _sourceNormals;
+        private _facetPositions;
+        private _facetNormals;
+        private _facetPartitioning;
+        private _facetNb;
+        private _partitioningSubdivisions;
+        private _partitioningBBoxRatio;
+        private _facetDataEnabled;
+        private _facetParameters;
+        /**
+         * Read-only : the number of facets in the mesh
+         */
+        readonly facetNb: number;
+        /**
+         * The number of subdivisions per axis in the partioning space
+         */
+        partitioningSubdivisions: number;
+        /**
+         * The ratio to apply to the bouding box size to set to the partioning space.
+         * Ex : 1.01 (default) the partioning space is 1% bigger than the bounding box.
+         */
+        partitioningBBoxRatio: number;
+        /**
+         * Read-only : is the feature facetData enabled ?
+         */
+        readonly isFacetDataEnabled: boolean;
+        private _source;
+        readonly source: BABYLON.Mesh;
         /**
          * @constructor
          * @param {string} name The value used by scene.getMeshByName() to do a lookup.
@@ -8256,13 +6565,15 @@ declare module BABYLON {
          * @param {boolean} doNotCloneChildren When cloning, skip cloning child meshes of source, default False.
          *                  When false, achieved by calling a clone(), also passing False.
          *                  This will make creation of children, recursive.
+         * @param {boolean} clonePhysicsImpostor When cloning, include cloning mesh physics impostor, default True.
          */
         constructor(name: string, scene: Scene, parent?: Node, source?: Mesh, doNotCloneChildren?: boolean, clonePhysicsImpostor?: boolean);
+        getClassName(): string;
         /**
          * @param {boolean} fullDetails - support for multiple levels of logging within scene loading
          */
         toString(fullDetails?: boolean): string;
-        hasLODLevels: boolean;
+        readonly hasLODLevels: boolean;
         private _sortLODLevels();
         /**
          * Add a mesh as LOD level triggered at the given distance.
@@ -8293,7 +6604,7 @@ declare module BABYLON {
         /**
          * Returns the mesh internal Geometry object.
          */
-        geometry: Geometry;
+        readonly geometry: Geometry;
         /**
          * Returns a positive integer : the total number of vertices within the mesh geometry or zero if the mesh has no geometry.
          */
@@ -8380,7 +6691,7 @@ declare module BABYLON {
          * Returns an empty array if the mesh has no geometry.
          */
         getIndices(copyWhenShared?: boolean): number[] | Int32Array;
-        isBlocked: boolean;
+        readonly isBlocked: boolean;
         /**
          * Boolean : true once the mesh is ready after all the delayed process (loading, etc) are complete.
          */
@@ -8398,7 +6709,7 @@ declare module BABYLON {
          * Boolean : true if the normals aren't to be recomputed on next mesh `positions` array update.
          * This property is pertinent only for updatable parametric shapes.
          */
-        areNormalsFrozen: boolean;
+        readonly areNormalsFrozen: boolean;
         /**
          * This function affects parametric shapes on vertex position update only : ribbons, tubes, etc.
          * It has no effect at all on other shapes.
@@ -8659,6 +6970,75 @@ declare module BABYLON {
          * @param successCallback an optional success callback to be called after the optimization finished.
          */
         optimizeIndices(successCallback?: (mesh?: Mesh) => void): void;
+        /**
+         *  Initialize the facet data arrays : facetNormals, facetPositions and facetPartitioning
+         */
+        private _initFacetData();
+        /**
+         * Updates the mesh facetData arrays and the internal partitioning when the mesh is morphed or updated.
+         * This method can be called within the render loop.
+         * You don't need to call this method by yourself in the render loop when you update/morph a mesh with the methods CreateXXX() as they automatically manage this computation.
+         */
+        updateFacetData(): Mesh;
+        /**
+         * Returns the facetLocalNormals array.
+         * The normals are expressed in the mesh local space.
+         */
+        getFacetLocalNormals(): Vector3[];
+        /**
+         * Returns the facetLocalPositions array.
+         * The facet positions are expressed in the mesh local space.
+         */
+        getFacetLocalPositions(): Vector3[];
+        /**
+         * Returns the facetLocalPartioning array
+         */
+        getFacetLocalPartitioning(): number[][];
+        /**
+         * Returns the i-th facet position in the world system.
+         * This method allocates a new Vector3 per call.
+         */
+        getFacetPosition(i: number): Vector3;
+        /**
+         * Sets the reference Vector3 with the i-th facet position in the world system.
+         * Returns the mesh.
+         */
+        getFacetPositionToRef(i: number, ref: Vector3): Mesh;
+        /**
+         * Returns the i-th facet normal in the world system.
+         * This method allocates a new Vector3 per call.
+         */
+        getFacetNormal(i: number): Vector3;
+        /**
+         * Sets the reference Vector3 with the i-th facet normal in the world system.
+         * Returns the mesh.
+         */
+        getFacetNormalToRef(i: number, ref: Vector3): this;
+        /**
+         * Returns the facets (in an array) in the same partitioning block than the one the passed coordinates are located (expressed in the mesh local system).
+         */
+        getFacetsAtLocalCoordinates(x: number, y: number, z: number): number[];
+        /**
+         * Returns the closest mesh facet index at (x,y,z) World coordinates, null if not found.
+         * If the parameter projected (vector3) is passed, it is set as the (x,y,z) World projection on the facet.
+         * If onlyFacing is true, only the facet "facing" (x,y,z) are returned : positive dot normal * (x,y,z).
+         */
+        getClosestFacetAtCoordinates(x: number, y: number, z: number, projected?: Vector3, onlyFacing?: boolean): number;
+        /**
+         * Returns the closest mesh facet index at (x,y,z) local coordinates, null if not found.
+         * If the parameter projected (vector3) is passed, it is set as the (x,y,z) local projection on the facet.
+         * If onlyFacing is true, only the facet "facing" (x,y,z) are returned : positive dot normal * (x,y,z).
+         */
+        getClosestFacetAtLocalCoordinates(x: number, y: number, z: number, projected?: Vector3, onlyFacing?: boolean): any;
+        /**
+         * Returns the object "parameter" set with all the expected parameters for facetData computation by ComputeNormals()
+         */
+        getFacetDataParameters(): any;
+        /**
+         * Disables the feature FacetData and frees the related memory.
+         * Returns the mesh.
+         */
+        disableFacetData(): Mesh;
         /**
          * Returns a new Mesh object what is a deep copy of the passed mesh.
          * The parameter `parsedMesh` is the mesh to be copied.
@@ -9106,6 +7486,8 @@ declare module BABYLON {
             width?: number;
             height?: number;
             subdivisions?: number;
+            subdivisionsX?: number;
+            subdivisionsY?: number;
         }): VertexData;
         static CreateTiledGround(options: {
             xmin: number;
@@ -9177,8 +7559,22 @@ declare module BABYLON {
          * @param {any} - positions (number[] or Float32Array)
          * @param {any} - indices   (number[] or Uint16Array)
          * @param {any} - normals   (number[] or Float32Array)
+         * options (optional) :
+         * facetPositions : optional array of facet positions (vector3)
+         * facetNormals : optional array of facet normals (vector3)
+         * facetPartitioning : optional partitioning array. facetPositions is required for facetPartitioning computation
+         * partitioningSubdivisions : optional partitioning number of subdivsions on  each axis (int), required for facetPartitioning computation
+         * ratio : optional partitioning ratio / bounding box, required for facetPartitioning computation
+         * bInfo : optional bounding box info, required for facetPartitioning computation
          */
-        static ComputeNormals(positions: any, indices: any, normals: any): void;
+        static ComputeNormals(positions: any, indices: any, normals: any, options?: {
+            facetNormals?: any;
+            facetPositions?: any;
+            facetPartitioning?: any;
+            ratio?: number;
+            bInfo?: any;
+            partitioningSubdivisions?: number;
+        }): void;
         private static _ComputeSides(sideOrientation, positions, indices, normals, uvs);
         static ImportVertexData(parsedVertexData: any, geometry: Geometry): void;
     }
@@ -9186,6 +7582,7 @@ declare module BABYLON {
 
 declare module BABYLON {
     class MeshBuilder {
+        private static updateSideOrientation(orientation, scene);
         /**
          * Creates a box mesh.
          * tuto : http://doc.babylonjs.com/tutorials/Mesh_CreateXXX_Methods_With_Options_Parameter#box
@@ -9558,6 +7955,8 @@ declare module BABYLON {
             width?: number;
             height?: number;
             subdivisions?: number;
+            subdivisionsX?: number;
+            subdivisionsY?: number;
             updatable?: boolean;
         }, scene: any): Mesh;
         /**
@@ -9874,8 +8273,9 @@ declare module BABYLON {
         _distanceToCamera: number;
         _id: number;
         constructor(materialIndex: number, verticesStart: number, verticesCount: number, indexStart: any, indexCount: number, mesh: AbstractMesh, renderingMesh?: Mesh, createBoundingBox?: boolean);
-        IsGlobal: boolean;
+        readonly IsGlobal: boolean;
         getBoundingInfo(): BoundingInfo;
+        setBoundingInfo(boundingInfo: BoundingInfo): void;
         getMesh(): AbstractMesh;
         getRenderingMesh(): Mesh;
         getMaterial(): Material;
@@ -9928,19 +8328,19 @@ declare module BABYLON {
         private static _MatricesWeightsKind;
         private static _MatricesIndicesExtraKind;
         private static _MatricesWeightsExtraKind;
-        static PositionKind: string;
-        static NormalKind: string;
-        static UVKind: string;
-        static UV2Kind: string;
-        static UV3Kind: string;
-        static UV4Kind: string;
-        static UV5Kind: string;
-        static UV6Kind: string;
-        static ColorKind: string;
-        static MatricesIndicesKind: string;
-        static MatricesWeightsKind: string;
-        static MatricesIndicesExtraKind: string;
-        static MatricesWeightsExtraKind: string;
+        static readonly PositionKind: string;
+        static readonly NormalKind: string;
+        static readonly UVKind: string;
+        static readonly UV2Kind: string;
+        static readonly UV3Kind: string;
+        static readonly UV4Kind: string;
+        static readonly UV5Kind: string;
+        static readonly UV6Kind: string;
+        static readonly ColorKind: string;
+        static readonly MatricesIndicesKind: string;
+        static readonly MatricesWeightsKind: string;
+        static readonly MatricesIndicesExtraKind: string;
+        static readonly MatricesWeightsExtraKind: string;
     }
 }
 
@@ -9983,6 +8383,8 @@ declare module BABYLON {
         maxAngularSpeed: number;
         particleTexture: Texture;
         layerMask: number;
+        customShader: any;
+        preventAutoStart: boolean;
         /**
         * An event triggered when the system is disposed.
         * @type {BABYLON.Observable}
@@ -10061,9 +8463,34 @@ declare module BABYLON {
         _model: ModelShape;
         shapeId: number;
         idxInShape: number;
-        constructor(particleIndex: number, positionIndex: number, model: ModelShape, shapeId: number, idxInShape: number);
+        _modelBoundingInfo: BoundingInfo;
+        _boundingInfo: BoundingInfo;
+        _sps: SolidParticleSystem;
+        /**
+         * Creates a Solid Particle object.
+         * Don't create particles manually, use instead the Solid Particle System internal tools like _addParticle()
+         * `particleIndex` (integer) is the particle index in the Solid Particle System pool. It's also the particle identifier.
+         * `positionIndex` (integer) is the starting index of the particle vertices in the SPS "positions" array.
+         *  `model` (ModelShape) is a reference to the model shape on what the particle is designed.
+         * `shapeId` (integer) is the model shape identifier in the SPS.
+         * `idxInShape` (integer) is the index of the particle in the current model (ex: the 10th box of addShape(box, 30))
+         * `modelBoundingInfo` is the reference to the model BoundingInfo used for intersection computations.
+         */
+        constructor(particleIndex: number, positionIndex: number, model: ModelShape, shapeId: number, idxInShape: number, sps: SolidParticleSystem, modelBoundingInfo?: BoundingInfo);
+        /**
+         * legacy support, changed scale to scaling
+         */
         scale: Vector3;
+        /**
+         * legacy support, changed quaternion to rotationQuaternion
+         */
         quaternion: Quaternion;
+        /**
+         * Returns a boolean. True if the particle intersects another particle or another mesh, else false.
+         * The intersection is computed on the particle bounding sphere and Axis Aligned Bounding Box (AABB)
+         * `target` is the object (solid particle or mesh) what the intersection is computed against.
+         */
+        intersectsMesh(target: Mesh | SolidParticle): boolean;
     }
     class ModelShape {
         shapeID: number;
@@ -10071,6 +8498,10 @@ declare module BABYLON {
         _shapeUV: number[];
         _positionFunction: (particle: SolidParticle, i: number, s: number) => void;
         _vertexFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void;
+        /**
+         * Creates a ModelShape object. This is an internal simplified reference to a mesh used as for a model to replicate particles from by the SPS.
+         * SPS internal tool, don't use it manually.
+         */
         constructor(id: number, shape: Vector3[], shapeUV: number[], posFunction: (particle: SolidParticle, i: number, s: number) => void, vtxFunction: (particle: SolidParticle, vertex: Vector3, i: number) => void);
     }
 }
@@ -10093,6 +8524,10 @@ declare module BABYLON {
         * If the particles must ever face the camera (default false). Useful for planar particles.
         */
         billboard: boolean;
+        /**
+         * Recompute normals when adding a shape
+         */
+        recomputeNormals: boolean;
         /**
         * This a counter ofr your own usage. It's not set by any SPS functions.
         */
@@ -10178,16 +8613,30 @@ declare module BABYLON {
         private _w;
         private _minimum;
         private _maximum;
+        private _scale;
+        private _translation;
+        private _minBbox;
+        private _maxBbox;
+        private _particlesIntersect;
+        _bSphereOnly: boolean;
+        _bSphereRadiusFactor: number;
         /**
         * Creates a SPS (Solid Particle System) object.
         * `name` (String) is the SPS name, this will be the underlying mesh name.
         * `scene` (Scene) is the scene in which the SPS is added.
-        * `updatable` (default true) : if the SPS must be updatable or immutable.
-        * `isPickable` (default false) : if the solid particles must be pickable.
+        * `updatable` (optional boolean, default true) : if the SPS must be updatable or immutable.
+        * `isPickable` (optional boolean, default false) : if the solid particles must be pickable.
+        * `particleIntersection` (optional boolean, default false) : if the solid particle intersections must be computed.
+        * `boundingSphereOnly` (optional boolean, default false) : if the particle intersection must be computed only with the bounding sphere (no bounding box computation, so faster).
+        * `bSphereRadiusFactor` (optional float, default 1.0) : a number to multiply the boundind sphere radius by in order to reduce it for instance.
+        *  Example : bSphereRadiusFactor = 1.0 / Math.sqrt(3.0) => the bounding sphere exactly matches a spherical mesh.
         */
         constructor(name: string, scene: Scene, options?: {
             updatable?: boolean;
             isPickable?: boolean;
+            particleIntersection?: boolean;
+            boundingSphereOnly?: boolean;
+            bSphereRadiusFactor?: number;
         });
         /**
         * Builds the SPS underlying mesh. Returns a standard Mesh.
@@ -10209,10 +8658,10 @@ declare module BABYLON {
             delta?: number;
         }): SolidParticleSystem;
         private _resetCopy();
-        private _meshBuilder(p, shape, positions, meshInd, indices, meshUV, uvs, meshCol, colors, idx, idxInShape, options);
+        private _meshBuilder(p, shape, positions, meshInd, indices, meshUV, uvs, meshCol, colors, meshNor, normals, idx, idxInShape, options);
         private _posToShape(positions);
         private _uvsToShapeUV(uvs);
-        private _addParticle(idx, idxpos, model, shapeId, idxInShape);
+        private _addParticle(idx, idxpos, model, shapeId, idxInShape, bInfo?);
         /**
         * Adds some particles to the SPS from the model shape. Returns the shape id.
         * Please read the doc : http://doc.babylonjs.com/overviews/Solid_Particle_System#create-an-immutable-sps
@@ -10432,7 +8881,7 @@ declare module BABYLON {
         setBodyMass(impostor: PhysicsImpostor, mass: number): any;
         sleepBody(impostor: PhysicsImpostor): any;
         wakeUpBody(impostor: PhysicsImpostor): any;
-        updateDistanceJoint(joint: DistanceJoint, maxDistance: number, minDistance?: number): any;
+        updateDistanceJoint(joint: PhysicsJoint, maxDistance: number, minDistance?: number): any;
         setMotor(joint: IMotorEnabledJoint, speed: number, maxForce?: number, motorIndex?: number): any;
         setLimit(joint: IMotorEnabledJoint, upperLimit: number, lowerLimit?: number, motorIndex?: number): any;
         dispose(): any;
@@ -10520,14 +8969,8 @@ declare module BABYLON {
          */
         setMass(mass: number): void;
         getLinearVelocity(): Vector3;
-        /**
-         * Set the body's linear velocity.
-         */
         setLinearVelocity(velocity: Vector3): void;
         getAngularVelocity(): Vector3;
-        /**
-         * Set the body's linear velocity.
-         */
         setAngularVelocity(velocity: Vector3): void;
         /**
          * Execute a function with the physics plugin native code.
@@ -10559,6 +9002,10 @@ declare module BABYLON {
          * this function is executed by the physics engine.
          */
         afterStep: () => void;
+        /**
+         * Legacy collision detection event support
+         */
+        onCollideEvent: (collider: BABYLON.PhysicsImpostor, collidedWith: BABYLON.PhysicsImpostor) => void;
         onCollide: (e: {
             body: any;
         }) => void;
@@ -10717,6 +9164,28 @@ declare module BABYLON {
         length: number;
         stiffness: number;
         damping: number;
+    }
+}
+
+declare module BABYLON {
+    class ReflectionProbe {
+        name: string;
+        private _scene;
+        private _renderTargetTexture;
+        private _projectionMatrix;
+        private _viewMatrix;
+        private _target;
+        private _add;
+        private _attachedMesh;
+        invertYAxis: boolean;
+        position: Vector3;
+        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
+        refreshRate: number;
+        getScene(): Scene;
+        readonly cubeTexture: RenderTargetTexture;
+        readonly renderList: AbstractMesh[];
+        attachToMesh(mesh: AbstractMesh): void;
+        dispose(): void;
     }
 }
 
@@ -11068,7 +9537,7 @@ declare module BABYLON {
         /** invalidate frameBuffer to hint the postprocess to create a depth buffer */
         markTextureDirty(): void;
         activate(camera: Camera, sourceTexture?: WebGLTexture): void;
-        isSupported: boolean;
+        readonly isSupported: boolean;
         apply(): Effect;
         dispose(camera?: Camera): void;
     }
@@ -11192,6 +9661,65 @@ declare module BABYLON {
         private _createSSAOPostProcess(ratio);
         private _createSSAOCombinePostProcess(ratio);
         private _createRandomTexture();
+    }
+}
+
+declare module BABYLON {
+    class StandardRenderingPipeline extends PostProcessRenderPipeline implements IDisposable, IAnimatable {
+        /**
+        * Public members
+        */
+        originalPostProcess: PostProcess;
+        downSampleX4PostProcess: PostProcess;
+        brightPassPostProcess: PostProcess;
+        gaussianBlurHPostProcesses: PostProcess[];
+        gaussianBlurVPostProcesses: PostProcess[];
+        textureAdderPostProcess: PostProcess;
+        textureAdderFinalPostProcess: PostProcess;
+        lensFlarePostProcess: PostProcess;
+        lensFlareComposePostProcess: PostProcess;
+        depthOfFieldPostProcess: PostProcess;
+        brightThreshold: number;
+        blurWidth: number;
+        gaussianCoefficient: number;
+        gaussianMean: number;
+        gaussianStandardDeviation: number;
+        exposure: number;
+        lensTexture: Texture;
+        lensColorTexture: Texture;
+        lensFlareStrength: number;
+        lensFlareGhostDispersal: number;
+        lensFlareHaloWidth: number;
+        lensFlareDistortionStrength: number;
+        lensStarTexture: Texture;
+        lensFlareDirtTexture: Texture;
+        depthOfFieldDistance: number;
+        animations: Animation[];
+        /**
+        * Private members
+        */
+        private _scene;
+        private _depthRenderer;
+        private _depthOfFieldEnabled;
+        private _lensFlareEnabled;
+        DepthOfFieldEnabled: boolean;
+        LensFlareEnabled: boolean;
+        /**
+         * @constructor
+         * @param {string} name - The rendering pipeline name
+         * @param {BABYLON.Scene} scene - The scene linked to this pipeline
+         * @param {any} ratio - The size of the postprocesses (0.5 means that your postprocess will have a width = canvas.width 0.5 and a height = canvas.height 0.5)
+         * @param {BABYLON.PostProcess} originalPostProcess - the custom original color post-process. Must be "reusable". Can be null.
+         * @param {BABYLON.Camera[]} cameras - The array of cameras that the rendering pipeline will be attached to
+         */
+        constructor(name: string, scene: Scene, ratio: number, originalPostProcess?: PostProcess, cameras?: Camera[]);
+        private _createDownSampleX4PostProcess(scene, ratio);
+        private _createBrightPassPostProcess(scene, ratio);
+        private _createGaussianBlurPostProcesses(scene, ratio, indice);
+        private _createTextureAdderPostProcess(scene, ratio);
+        private _createLensFlarePostProcess(scene, ratio);
+        private _createDepthOfFieldPostProcess(scene, ratio);
+        dispose(): void;
     }
 }
 
@@ -11337,28 +9865,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class ReflectionProbe {
-        name: string;
-        private _scene;
-        private _renderTargetTexture;
-        private _projectionMatrix;
-        private _viewMatrix;
-        private _target;
-        private _add;
-        private _attachedMesh;
-        invertYAxis: boolean;
-        position: Vector3;
-        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
-        refreshRate: number;
-        getScene(): Scene;
-        cubeTexture: RenderTargetTexture;
-        renderList: AbstractMesh[];
-        attachToMesh(mesh: AbstractMesh): void;
-        dispose(): void;
-    }
-}
-
-declare module BABYLON {
     class BoundingBoxRenderer {
         frontColor: Color3;
         backColor: Color3;
@@ -11436,33 +9942,162 @@ declare module BABYLON {
         private _opaqueSubMeshes;
         private _transparentSubMeshes;
         private _alphaTestSubMeshes;
+        private _particleSystems;
+        private _spriteManagers;
         private _activeVertices;
+        private _opaqueSortCompareFn;
+        private _alphaTestSortCompareFn;
+        private _transparentSortCompareFn;
+        private _renderOpaque;
+        private _renderAlphaTest;
+        private _renderTransparent;
         onBeforeTransparentRendering: () => void;
-        constructor(index: number, scene: Scene);
-        render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void): boolean;
+        /**
+         * Set the opaque sort comparison function.
+         * If null the sub meshes will be render in the order they were created
+         */
+        opaqueSortCompareFn: (a: SubMesh, b: SubMesh) => number;
+        /**
+         * Set the alpha test sort comparison function.
+         * If null the sub meshes will be render in the order they were created
+         */
+        alphaTestSortCompareFn: (a: SubMesh, b: SubMesh) => number;
+        /**
+         * Set the transparent sort comparison function.
+         * If null the sub meshes will be render in the order they were created
+         */
+        transparentSortCompareFn: (a: SubMesh, b: SubMesh) => number;
+        /**
+         * Creates a new rendering group.
+         * @param index The rendering group index
+         * @param opaqueSortCompareFn The opaque sort comparison function. If null no order is applied
+         * @param alphaTestSortCompareFn The alpha test sort comparison function. If null no order is applied
+         * @param transparentSortCompareFn The transparent sort comparison function. If null back to front + alpha index sort is applied
+         */
+        constructor(index: number, scene: Scene, opaqueSortCompareFn?: (a: SubMesh, b: SubMesh) => number, alphaTestSortCompareFn?: (a: SubMesh, b: SubMesh) => number, transparentSortCompareFn?: (a: SubMesh, b: SubMesh) => number);
+        /**
+         * Render all the sub meshes contained in the group.
+         * @param customRenderFunction Used to override the default render behaviour of the group.
+         * @returns true if rendered some submeshes.
+         */
+        render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void, renderSprites: boolean, renderParticles: boolean, activeMeshes: AbstractMesh[]): void;
+        /**
+         * Renders the opaque submeshes in the order from the opaqueSortCompareFn.
+         * @param subMeshes The submeshes to render
+         */
+        private renderOpaqueSorted(subMeshes);
+        /**
+         * Renders the opaque submeshes in the order from the alphatestSortCompareFn.
+         * @param subMeshes The submeshes to render
+         */
+        private renderAlphaTestSorted(subMeshes);
+        /**
+         * Renders the opaque submeshes in the order from the transparentSortCompareFn.
+         * @param subMeshes The submeshes to render
+         */
+        private renderTransparentSorted(subMeshes);
+        /**
+         * Renders the submeshes in a specified order.
+         * @param subMeshes The submeshes to sort before render
+         * @param sortCompareFn The comparison function use to sort
+         * @param cameraPosition The camera position use to preprocess the submeshes to help sorting
+         * @param transparent Specifies to activate blending if true
+         */
+        private static renderSorted(subMeshes, sortCompareFn, cameraPosition, transparent);
+        /**
+         * Renders the submeshes in the order they were dispatched (no sort applied).
+         * @param subMeshes The submeshes to render
+         */
+        private static renderUnsorted(subMeshes);
+        /**
+         * Build in function which can be applied to ensure meshes of a special queue (opaque, alpha test, transparent)
+         * are rendered back to front if in the same alpha index.
+         *
+         * @param a The first submesh
+         * @param b The second submesh
+         * @returns The result of the comparison
+         */
+        static defaultTransparentSortCompare(a: SubMesh, b: SubMesh): number;
+        /**
+         * Build in function which can be applied to ensure meshes of a special queue (opaque, alpha test, transparent)
+         * are rendered back to front.
+         *
+         * @param a The first submesh
+         * @param b The second submesh
+         * @returns The result of the comparison
+         */
+        static backToFrontSortCompare(a: SubMesh, b: SubMesh): number;
+        /**
+         * Build in function which can be applied to ensure meshes of a special queue (opaque, alpha test, transparent)
+         * are rendered front to back (prevent overdraw).
+         *
+         * @param a The first submesh
+         * @param b The second submesh
+         * @returns The result of the comparison
+         */
+        static frontToBackSortCompare(a: SubMesh, b: SubMesh): number;
+        /**
+         * Resets the different lists of submeshes to prepare a new frame.
+         */
         prepare(): void;
+        /**
+         * Inserts the submesh in its correct queue depending on its material.
+         * @param subMesh The submesh to dispatch
+         */
         dispatch(subMesh: SubMesh): void;
+        dispatchSprites(spriteManager: SpriteManager): void;
+        dispatchParticles(particleSystem: ParticleSystem): void;
+        private _renderParticles(activeMeshes);
+        private _renderSprites();
     }
 }
 
 declare module BABYLON {
     class RenderingManager {
+        /**
+         * The max id used for rendering groups (not included)
+         */
         static MAX_RENDERINGGROUPS: number;
+        /**
+         * The min id used for rendering groups (included)
+         */
+        static MIN_RENDERINGGROUPS: number;
         private _scene;
         private _renderingGroups;
-        private _depthBufferAlreadyCleaned;
+        private _depthStencilBufferAlreadyCleaned;
         private _currentIndex;
-        private _currentActiveMeshes;
-        private _currentRenderParticles;
-        private _currentRenderSprites;
+        private _autoClearDepthStencil;
+        private _customOpaqueSortCompareFn;
+        private _customAlphaTestSortCompareFn;
+        private _customTransparentSortCompareFn;
+        private _renderinGroupInfo;
         constructor(scene: Scene);
-        private _renderParticles(index, activeMeshes);
-        private _renderSprites(index);
-        private _clearDepthBuffer();
-        private _renderSpritesAndParticles();
+        private _clearDepthStencilBuffer(depth?, stencil?);
         render(customRenderFunction: (opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>) => void, activeMeshes: AbstractMesh[], renderParticles: boolean, renderSprites: boolean): void;
         reset(): void;
+        private _prepareRenderingGroup(renderingGroupId);
+        dispatchSprites(spriteManager: SpriteManager): void;
+        dispatchParticles(particleSystem: ParticleSystem): void;
         dispatch(subMesh: SubMesh): void;
+        /**
+         * Overrides the default sort function applied in the renderging group to prepare the meshes.
+         * This allowed control for front to back rendering or reversly depending of the special needs.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param opaqueSortCompareFn The opaque queue comparison function use to sort.
+         * @param alphaTestSortCompareFn The alpha test queue comparison function use to sort.
+         * @param transparentSortCompareFn The transparent queue comparison function use to sort.
+         */
+        setRenderingOrder(renderingGroupId: number, opaqueSortCompareFn?: (a: SubMesh, b: SubMesh) => number, alphaTestSortCompareFn?: (a: SubMesh, b: SubMesh) => number, transparentSortCompareFn?: (a: SubMesh, b: SubMesh) => number): void;
+        /**
+         * Specifies whether or not the stencil and depth buffer are cleared between two rendering groups.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param autoClearDepthStencil Automatically clears depth and stencil between groups if true.
+         * @param depth Automatically clears depth between groups if true and autoClear is true.
+         * @param stencil Automatically clears stencil between groups if true and autoClear is true.
+         */
+        setRenderingAutoClearDepthStencil(renderingGroupId: number, autoClearDepthStencil: boolean, depth?: boolean, stencil?: boolean): void;
     }
 }
 
@@ -11490,9 +10125,10 @@ declare module BABYLON {
         private _frameCount;
         private _manager;
         private _time;
+        private _onAnimationEnd;
         size: number;
         constructor(name: string, manager: SpriteManager);
-        playAnimation(from: number, to: number, loop: boolean, delay: number): void;
+        playAnimation(from: number, to: number, loop: boolean, delay: number, onAnimationEnd: () => void): void;
         stopAnimation(): void;
         _animate(deltaTime: number): void;
         dispose(): void;
@@ -11541,7 +10177,11 @@ declare module BABYLON.Internals {
         private _isBlendFunctionParametersDirty;
         private _alphaBlend;
         private _blendFunctionParameters;
-        isDirty: boolean;
+        /**
+         * Initializes the state.
+         */
+        constructor();
+        readonly isDirty: boolean;
         alphaBlend: boolean;
         setAlphaBlendFunctionParameters(value0: number, value1: number, value2: number, value3: number): void;
         reset(): void;
@@ -11563,13 +10203,46 @@ declare module BABYLON.Internals {
         private _cull;
         private _cullFace;
         private _zOffset;
-        isDirty: boolean;
+        /**
+         * Initializes the state.
+         */
+        constructor();
+        readonly isDirty: boolean;
         zOffset: number;
         cullFace: number;
         cull: boolean;
         depthFunc: number;
         depthMask: boolean;
         depthTest: boolean;
+        reset(): void;
+        apply(gl: WebGLRenderingContext): void;
+    }
+}
+
+declare module BABYLON.Internals {
+    class _StencilState {
+        private _isStencilTestDirty;
+        private _isStencilMaskDirty;
+        private _isStencilFuncDirty;
+        private _isStencilOpDirty;
+        private _stencilTest;
+        private _stencilMask;
+        private _stencilFunc;
+        private _stencilFuncRef;
+        private _stencilFuncMask;
+        private _stencilOpStencilFail;
+        private _stencilOpDepthFail;
+        private _stencilOpStencilDepthPass;
+        readonly isDirty: boolean;
+        stencilFunc: number;
+        stencilFuncRef: number;
+        stencilFuncMask: number;
+        stencilOpStencilFail: number;
+        stencilOpDepthFail: number;
+        stencilOpStencilDepthPass: number;
+        stencilMask: number;
+        stencilTest: boolean;
+        constructor();
         reset(): void;
         apply(gl: WebGLRenderingContext): void;
     }
@@ -11634,23 +10307,41 @@ declare module BABYLON {
         constructor(name: string, url: string);
         run(scene: Scene, onSuccess: () => void, onError: () => void): void;
     }
-    class TextureAssetTask implements IAssetTask {
+    interface ITextureAssetTask extends IAssetTask {
+        onSuccess: (task: ITextureAssetTask) => void;
+        onError: (task: ITextureAssetTask) => void;
+        texture: Texture;
+    }
+    class TextureAssetTask implements ITextureAssetTask {
         name: string;
         url: string;
         noMipmap: boolean;
         invertY: boolean;
         samplingMode: number;
-        onSuccess: (task: IAssetTask) => void;
-        onError: (task: IAssetTask) => void;
+        onSuccess: (task: ITextureAssetTask) => void;
+        onError: (task: ITextureAssetTask) => void;
         isCompleted: boolean;
         texture: Texture;
         constructor(name: string, url: string, noMipmap?: boolean, invertY?: boolean, samplingMode?: number);
         run(scene: Scene, onSuccess: () => void, onError: () => void): void;
     }
+    class CubeTextureAssetTask implements IAssetTask {
+        name: string;
+        url: string;
+        extensions: string[];
+        noMipmap: boolean;
+        files: string[];
+        onSuccess: (task: IAssetTask) => void;
+        onError: (task: IAssetTask) => void;
+        isCompleted: boolean;
+        texture: CubeTexture;
+        constructor(name: string, url: string, extensions?: string[], noMipmap?: boolean, files?: string[]);
+        run(scene: Scene, onSuccess: () => void, onError: () => void): void;
+    }
     class AssetsManager {
-        private _tasks;
         private _scene;
-        private _waitingTasksCount;
+        protected tasks: IAssetTask[];
+        protected waitingTasksCount: number;
         onFinish: (tasks: IAssetTask[]) => void;
         onTaskSuccess: (task: IAssetTask) => void;
         onTaskError: (task: IAssetTask) => void;
@@ -11660,7 +10351,7 @@ declare module BABYLON {
         addTextFileTask(taskName: string, url: string): IAssetTask;
         addBinaryFileTask(taskName: string, url: string): IAssetTask;
         addImageTask(taskName: string, url: string): IAssetTask;
-        addTextureTask(taskName: string, url: string, noMipmap?: boolean, invertY?: boolean, samplingMode?: number): IAssetTask;
+        addTextureTask(taskName: string, url: string, noMipmap?: boolean, invertY?: boolean, samplingMode?: number): ITextureAssetTask;
         private _decreaseWaitingTasksCount();
         private _runTask(task);
         reset(): AssetsManager;
@@ -11762,22 +10453,22 @@ declare module BABYLON {
          * Get the total count of entries that can fit in the current buffer
          * @returns the elements count
          */
-        totalElementCount: number;
+        readonly totalElementCount: number;
         /**
          * Get the count of free entries that can still be allocated without resizing the buffer
          * @returns the free elements count
          */
-        freeElementCount: number;
+        readonly freeElementCount: number;
         /**
          * Get the count of allocated elements
          * @returns the allocated elements count
          */
-        usedElementCount: number;
+        readonly usedElementCount: number;
         /**
          * Return the size of one element in float
          * @returns the size in float
          */
-        stride: number;
+        readonly stride: number;
         compareValueOffset: number;
         sortingAscending: boolean;
         sort(): boolean;
@@ -11871,9 +10562,13 @@ declare module BABYLON {
         browserGamepad: any;
         private _leftStick;
         private _rightStick;
+        private _leftStickAxisX;
+        private _leftStickAxisY;
+        private _rightStickAxisX;
+        private _rightStickAxisY;
         private _onleftstickchanged;
         private _onrightstickchanged;
-        constructor(id: string, index: number, browserGamepad: any);
+        constructor(id: string, index: number, browserGamepad: any, leftStickX?: number, leftStickY?: number, rightStickX?: number, rightStickY?: number);
         onleftstickchanged(callback: (values: StickValues) => void): void;
         onrightstickchanged(callback: (values: StickValues) => void): void;
         leftStick: StickValues;
@@ -11934,6 +10629,8 @@ declare module BABYLON {
         private _dPadDown;
         private _dPadLeft;
         private _dPadRight;
+        private _isXboxOnePad;
+        constructor(id: string, index: number, gamepad: any, xboxOne?: boolean);
         onlefttriggerchanged(callback: (value: number) => void): void;
         onrighttriggerchanged(callback: (value: number) => void): void;
         leftTrigger: number;
@@ -11966,6 +10663,47 @@ interface Navigator {
     webkitGetGamepads(func?: any): any;
     msGetGamepads(func?: any): any;
     webkitGamepads(func?: any): any;
+}
+
+declare module BABYLON.Internals {
+    /**
+     * for description see https://www.khronos.org/opengles/sdk/tools/KTX/
+     * for file layout see https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
+     */
+    class KhronosTextureContainer {
+        arrayBuffer: any;
+        static HEADER_LEN: number;
+        static COMPRESSED_2D: number;
+        static COMPRESSED_3D: number;
+        static TEX_2D: number;
+        static TEX_3D: number;
+        glType: number;
+        glTypeSize: number;
+        glFormat: number;
+        glInternalFormat: number;
+        glBaseInternalFormat: number;
+        pixelWidth: number;
+        pixelHeight: number;
+        pixelDepth: number;
+        numberOfArrayElements: number;
+        numberOfFaces: number;
+        numberOfMipmapLevels: number;
+        bytesOfKeyValueData: number;
+        loadType: number;
+        /**
+         * @param {ArrayBuffer} arrayBuffer- contents of the KTX container file
+         * @param {number} facesExpected- should be either 1 or 6, based whether a cube texture or or
+         * @param {boolean} threeDExpected- provision for indicating that data should be a 3D texture, not implemented
+         * @param {boolean} textureArrayExpected- provision for indicating that data should be a texture array, not implemented
+         */
+        constructor(arrayBuffer: any, facesExpected: number, threeDExpected?: boolean, textureArrayExpected?: boolean);
+        switchEndainness(val: number): number;
+        /**
+         * It is assumed that the texture has already been created & is currently bound
+         */
+        uploadLevels(gl: WebGLRenderingContext, loadMipmaps: boolean): void;
+        private _upload2DCompressedLevels(gl, loadMipmaps);
+    }
 }
 
 declare module BABYLON {
@@ -12025,8 +10763,9 @@ declare module BABYLON {
      * A given observer can register itself with only Move and Stop (mask = 0x03), then it will only be notified when one of these two occurs and will never be for Turn Left/Right.
      */
     class Observable<T> {
-        private static _pooledEventState;
         _observers: Observer<T>[];
+        private _eventState;
+        constructor();
         /**
          * Create a new Observer with the specified callback
          * @param callback the callback that will be executed for that Observer
@@ -12046,10 +10785,11 @@ declare module BABYLON {
         removeCallback(callback: (eventData: T, eventState: EventState) => void): boolean;
         /**
          * Notify all Observers by calling their respective callback with the given data
+         * Will return true if all observers were executed, false if an observer set skipNextObservers to true, then prevent the subsequent ones to execute
          * @param eventData
          * @param mask
          */
-        notifyObservers(eventData: T, mask?: number): void;
+        notifyObservers(eventData: T, mask?: number): boolean;
         /**
          * return true is the Observable has at least one Observer registered
          */
@@ -12075,16 +10815,16 @@ declare module BABYLON {
         /**
          * @returns the position of this node into the map
          */
-        pos: Vector2;
+        readonly pos: Vector2;
         /**
          * @returns the size of the rectangle this node handles
          */
-        contentSize: Size;
+        readonly contentSize: Size;
         /**
          * Compute the UV of the top/left, top/right, bottom/right, bottom/left points of the rectangle this node handles into the map
          * @returns And array of 4 Vector2, containing UV coordinates for the four corners of the Rectangle into the map
          */
-        UVs: Vector2[];
+        readonly UVs: Vector2[];
         /**
          * You may have allocated the PackedRect using over-provisioning (you allocated more than you need in order to prevent frequent deallocations/reallocations) and then using only a part of the PackRect.
          * This method will return the UVs for this part by given the custom size of what you really use
@@ -12096,13 +10836,13 @@ declare module BABYLON {
          * Call this method when you no longer need the rectangle to be in the map.
          */
         freeContent(): void;
-        protected isUsed: boolean;
+        protected readonly isUsed: boolean;
         protected findAndSplitNode(contentSize: Size): PackedRect;
         private findNode(size);
         private splitNode(contentSize);
         private attemptDefrag();
         private clearNode();
-        private isRecursiveFree;
+        private readonly isRecursiveFree;
         protected evalFreeSize(size: number): number;
         protected _root: PackedRect;
         protected _parent: PackedRect;
@@ -12135,7 +10875,7 @@ declare module BABYLON {
          * Return the current space free normalized between [0;1]
          * @returns {}
          */
-        freeSpace: number;
+        readonly freeSpace: number;
     }
 }
 
@@ -12228,6 +10968,12 @@ declare module BABYLON {
      */
     class StringDictionary<T> {
         /**
+         * This will clear this dictionary and copy the content from the 'source' one.
+         * If the T value is a custom object, it won't be copied/cloned, the same object will be used
+         * @param source the dictionary to take the content from and copy to this dictionary
+         */
+        copyFrom(source: StringDictionary<T>): void;
+        /**
          * Get a value based from its key
          * @param key the given key to get the matching value from
          * @return the value if found, otherwise undefined is returned
@@ -12264,6 +11010,11 @@ declare module BABYLON {
         add(key: string, value: T): boolean;
         set(key: string, value: T): boolean;
         /**
+         * Get the element of the given key and remove it from the dictionary
+         * @param key
+         */
+        getAndRemove(key: string): T;
+        /**
          * Remove a key/value from the dictionary.
          * @param key the key to remove
          * @return true if the item was successfully deleted, false if no item with such key exist in the dictionary
@@ -12273,7 +11024,7 @@ declare module BABYLON {
          * Clear the whole content of the dictionary
          */
         clear(): void;
-        count: number;
+        readonly count: number;
         /**
          * Execute a callback on each key/val of the dictionary.
          * Note that you can remove any element in this dictionary in the callback implementation
@@ -12359,6 +11110,7 @@ declare module BABYLON {
         static BaseUrl: string;
         static CorsBehavior: any;
         static UseFallbackTexture: boolean;
+        private static fallbackTexture;
         static Instantiate(className: string): any;
         static SetImmediate(action: () => void): void;
         static IsExponentOfTwo(value: number): boolean;
@@ -12376,19 +11128,29 @@ declare module BABYLON {
             minimum: Vector3;
             maximum: Vector3;
         };
-        static Vector2ArrayFeeder(array: Array<Vector2> | Float32Array): (i) => Vector2;
+        static Vector2ArrayFeeder(array: Array<Vector2> | Float32Array): (i: number) => Vector2;
         static ExtractMinAndMaxVector2(feeder: (index: number) => Vector2, bias?: Vector2): {
             minimum: Vector2;
             maximum: Vector2;
         };
         static MakeArray(obj: any, allowsNullUndefined?: boolean): Array<any>;
         static GetPointerPrefix(): string;
-        static QueueNewFrame(func: any): void;
-        static RequestFullscreen(element: any, options?: any): void;
+        /**
+         * @param func - the function to be called
+         * @param requester - the object that will request the next frame. Falls back to window.
+         */
+        static QueueNewFrame(func: any, requester?: any): void;
+        static RequestFullscreen(element: any): void;
         static ExitFullscreen(): void;
+        static SetCorsBehavior(url: string, img: HTMLImageElement): string;
         static CleanUrl(url: string): string;
         static LoadImage(url: any, onload: any, onerror: any, database: any): HTMLImageElement;
         static LoadFile(url: string, callback: (data: any) => void, progressCallBack?: () => void, database?: any, useArrayBuffer?: boolean, onError?: () => void): void;
+        /**
+         * Load a script (identified by an url). When the url returns, the
+         * content of this file is added into a new script element, attached to the DOM (body element)
+         */
+        static LoadScript(scriptUrl: string, onSuccess: () => void, onError?: () => void): void;
         static ReadFileAsDataURL(fileToLoad: any, callback: any, progressCallback: any): void;
         static ReadFile(fileToLoad: any, callback: any, progressCallBack: any, useArrayBuffer?: boolean): void;
         static FileAsURL(content: string): string;
@@ -12405,8 +11167,16 @@ declare module BABYLON {
             handler: EventListener;
         }[]): void;
         static DumpFramebuffer(width: number, height: number, engine: Engine, successCallback?: (data: string) => void, mimeType?: string): void;
+        static EncodeScreenshotCanvasData(successCallback?: (data: string) => void, mimeType?: string): void;
         static CreateScreenshot(engine: Engine, camera: Camera, size: any, successCallback?: (data: string) => void, mimeType?: string): void;
+        static CreateScreenshotUsingRenderTarget(engine: Engine, camera: Camera, size: any, successCallback?: (data: string) => void, mimeType?: string): void;
         static ValidateXHRData(xhr: XMLHttpRequest, dataType?: number): boolean;
+        /**
+         * Implementation from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#answer-2117523
+         * Be aware Math.random() could cause collisions, but:
+         * "All but 6 of the 128 bits of the ID are randomly generated, which means that for any two ids, there's a 1 in 2^^122 (or 5.3x10^^36) chance they'll collide"
+         */
+        static RandomId(): string;
         private static _NoneLogLevel;
         private static _MessageLogLevel;
         private static _WarningLogLevel;
@@ -12414,11 +11184,11 @@ declare module BABYLON {
         private static _LogCache;
         static errorsCount: number;
         static OnNewCacheEntry: (entry: string) => void;
-        static NoneLogLevel: number;
-        static MessageLogLevel: number;
-        static WarningLogLevel: number;
-        static ErrorLogLevel: number;
-        static AllLogLevel: number;
+        static readonly NoneLogLevel: number;
+        static readonly MessageLogLevel: number;
+        static readonly WarningLogLevel: number;
+        static readonly ErrorLogLevel: number;
+        static readonly AllLogLevel: number;
         private static _AddLogEntry(entry);
         private static _FormatMessage(message);
         static Log: (message: string) => void;
@@ -12430,16 +11200,16 @@ declare module BABYLON {
         static Error: (message: string) => void;
         private static _ErrorDisabled(message);
         private static _ErrorEnabled(message);
-        static LogCache: string;
+        static readonly LogCache: string;
         static ClearLogCache(): void;
         static LogLevels: number;
         private static _PerformanceNoneLogLevel;
         private static _PerformanceUserMarkLogLevel;
         private static _PerformanceConsoleLogLevel;
         private static _performance;
-        static PerformanceNoneLogLevel: number;
-        static PerformanceUserMarkLogLevel: number;
-        static PerformanceConsoleLogLevel: number;
+        static readonly PerformanceNoneLogLevel: number;
+        static readonly PerformanceUserMarkLogLevel: number;
+        static readonly PerformanceConsoleLogLevel: number;
         static PerformanceLogLevel: number;
         static _StartPerformanceCounterDisabled(counterName: string, condition?: boolean): void;
         static _EndPerformanceCounterDisabled(counterName: string, condition?: boolean): void;
@@ -12449,7 +11219,7 @@ declare module BABYLON {
         static _EndPerformanceConsole(counterName: string, condition?: boolean): void;
         static StartPerformanceCounter: (counterName: string, condition?: boolean) => void;
         static EndPerformanceCounter: (counterName: string, condition?: boolean) => void;
-        static Now: number;
+        static readonly Now: number;
         /**
          * This method will return the name of the class used to create the instance of the given object.
          * It will works only on Javascript basic data types (number, string, ...) and instance of class declared with the @className decorator.
@@ -12457,12 +11227,19 @@ declare module BABYLON {
          * @return the name of the class, will be "object" for a custom data type not using the @className decorator
          */
         static getClassName(object: any, isType?: boolean): string;
-        static first<T>(array: Array<T>, predicate: (item) => boolean): T;
+        static first<T>(array: Array<T>, predicate: (item: T) => boolean): T;
+        /**
+         * This method will return the name of the full name of the class, including its owning module (if any).
+         * It will works only on Javascript basic data types (number, string, ...) and instance of class declared with the @className decorator or implementing a method getClassName():string (in which case the module won't be specified).
+         * @param object the object to get the class name from
+         * @return a string that can have two forms: "moduleName.className" if module was specified when the class' Name was registered or "className" if there was not module specified.
+         */
+        static getFullClassName(object: any, isType?: boolean): string;
         /**
          * This method can be used with hashCodeFromStream when your input is an array of values that are either: number, string, boolean or custom type implementing the getHashCode():number method.
          * @param array
          */
-        static arrayOrStringFeeder(array: any): (i) => number;
+        static arrayOrStringFeeder(array: any): (i: number) => number;
         /**
          * Compute the hashCode of a stream of number
          * To compute the HashCode on a string or an Array of data types implementing the getHashCode() method, use the arrayOrStringFeeder method.
@@ -12483,24 +11260,24 @@ declare module BABYLON {
         /**
          * Returns the smallest value ever
          */
-        min: number;
+        readonly min: number;
         /**
          * Returns the biggest value ever
          */
-        max: number;
+        readonly max: number;
         /**
          * Returns the average value since the performance counter is running
          */
-        average: number;
+        readonly average: number;
         /**
          * Returns the average value of the last second the counter was monitored
          */
-        lastSecAverage: number;
+        readonly lastSecAverage: number;
         /**
          * Returns the current value
          */
-        current: number;
-        total: number;
+        readonly current: number;
+        readonly total: number;
         constructor();
         /**
          * Call this method to start monitoring a new frame.
@@ -12536,12 +11313,13 @@ declare module BABYLON {
         private _lastSecValueCount;
     }
     /**
-     * Use this className as a decorator on a given class definition to add it a name.
+     * Use this className as a decorator on a given class definition to add it a name and optionally its module.
      * You can then use the Tools.getClassName(obj) on an instance to retrieve its class name.
      * This method is the only way to get it done in all cases, even if the .js file declaring the class is minified
-     * @param name
+     * @param name The name of the class, case should be preserved
+     * @param module The name of the Module hosting the class, optional, but strongly recommended to specify if possible. Case should be preserved.
      */
-    function className(name: string): (target: Object) => void;
+    function className(name: string, module?: string): (target: Object) => void;
     /**
     * An implementation of a loop for asynchronous functions.
     */
@@ -12644,6 +11422,110 @@ declare module BABYLON {
     }
 }
 
+interface Window {
+    holographicViewMatrix: boolean;
+    getViewMatrix(): Float32Array;
+    getCameraPositionVector(): Float32Array;
+}
+declare module BABYLON {
+    class HolographicCamera extends Camera {
+        private _identityProjection;
+        private _scriptProjection;
+        private _scriptViewProjection;
+        private _holographicViewMatrix;
+        private _onBeforeRenderObserver;
+        private _onBeforeCameraRenderObserver;
+        constructor(name: string, scene: Scene);
+        getTypeName(): string;
+        getProjectionMatrix(): Matrix;
+        getViewMatrix(): Matrix;
+        setViewMatrix(view: Matrix): void;
+        _initCache(): void;
+        _updateCache(): void;
+        _updateFromScene(): void;
+        _isSynchronizedViewMatrix(): boolean;
+        _isSynchronizedProjectionMatrix(): boolean;
+        private getFrustumPlanesToRef(result);
+        dispose(): void;
+    }
+}
+
+declare module BABYLON {
+    class VRCameraMetrics {
+        hResolution: number;
+        vResolution: number;
+        hScreenSize: number;
+        vScreenSize: number;
+        vScreenCenter: number;
+        eyeToScreenDistance: number;
+        lensSeparationDistance: number;
+        interpupillaryDistance: number;
+        distortionK: number[];
+        chromaAbCorrection: number[];
+        postProcessScaleFactor: number;
+        lensCenterOffset: number;
+        compensateDistortion: boolean;
+        readonly aspectRatio: number;
+        readonly aspectRatioFov: number;
+        readonly leftHMatrix: Matrix;
+        readonly rightHMatrix: Matrix;
+        readonly leftPreViewMatrix: Matrix;
+        readonly rightPreViewMatrix: Matrix;
+        static GetDefault(): VRCameraMetrics;
+    }
+}
+
+declare module BABYLON {
+    class VRDeviceOrientationFreeCamera extends DeviceOrientationCamera {
+        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean, vrCameraMetrics?: VRCameraMetrics);
+        getClassName(): string;
+    }
+    class VRDeviceOrientationArcRotateCamera extends ArcRotateCamera {
+        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene, compensateDistortion?: boolean, vrCameraMetrics?: VRCameraMetrics);
+        getClassName(): string;
+    }
+}
+
+declare var HMDVRDevice: any;
+declare var VRDisplay: any;
+declare var VRFrameData: any;
+declare module BABYLON {
+    interface WebVROptions {
+        trackPosition?: boolean;
+        positionScale?: number;
+        displayName?: string;
+    }
+    class WebVRFreeCamera extends FreeCamera {
+        private webVROptions;
+        _vrDevice: any;
+        private _cacheState;
+        private _vrEnabled;
+        private _attached;
+        private _oldSize;
+        private _oldHardwareScaleFactor;
+        private _frameData;
+        private _quaternionCache;
+        private _positionOffset;
+        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean, webVROptions?: WebVROptions);
+        _checkInputs(): void;
+        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
+        detachControl(element: HTMLElement): void;
+        requestVRFullscreen(requestPointerlock: boolean): void;
+        getClassName(): string;
+        resetToCurrentRotation(): void;
+        /**
+         *
+         * Set the position offset of the VR camera
+         * The offset will be added to the WebVR pose, after scaling it (if set).
+         *
+         * @param {Vector3} [newPosition] an optional new position. if not provided, the current camera position will be used.
+         *
+         * @memberOf WebVRFreeCamera
+         */
+        setPositionOffset(newPosition?: Vector3): void;
+    }
+}
+
 declare module BABYLON {
     class ArcRotateCameraGamepadInput implements ICameraInput<ArcRotateCamera> {
         camera: ArcRotateCamera;
@@ -12695,6 +11577,7 @@ declare module BABYLON {
 declare module BABYLON {
     class ArcRotateCameraPointersInput implements ICameraInput<ArcRotateCamera> {
         camera: ArcRotateCamera;
+        buttons: number[];
         angularSensibilityX: number;
         angularSensibilityY: number;
         pinchPrecision: number;
@@ -12800,8 +11683,10 @@ declare module BABYLON {
     class FreeCameraMouseInput implements ICameraInput<FreeCamera> {
         touchEnabled: boolean;
         camera: FreeCamera;
+        buttons: number[];
         angularSensibility: number;
         private _pointerInput;
+        private _onMouseMove;
         private _observer;
         private previousPosition;
         constructor(touchEnabled?: boolean);
@@ -12848,63 +11733,6 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class VRCameraMetrics {
-        hResolution: number;
-        vResolution: number;
-        hScreenSize: number;
-        vScreenSize: number;
-        vScreenCenter: number;
-        eyeToScreenDistance: number;
-        lensSeparationDistance: number;
-        interpupillaryDistance: number;
-        distortionK: number[];
-        chromaAbCorrection: number[];
-        postProcessScaleFactor: number;
-        lensCenterOffset: number;
-        compensateDistortion: boolean;
-        aspectRatio: number;
-        aspectRatioFov: number;
-        leftHMatrix: Matrix;
-        rightHMatrix: Matrix;
-        leftPreViewMatrix: Matrix;
-        rightPreViewMatrix: Matrix;
-        static GetDefault(): VRCameraMetrics;
-    }
-}
-
-declare module BABYLON {
-    class VRDeviceOrientationFreeCamera extends DeviceOrientationCamera {
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean, vrCameraMetrics?: VRCameraMetrics);
-        getTypeName(): string;
-    }
-    class VRDeviceOrientationArcRotateCamera extends ArcRotateCamera {
-        constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene, compensateDistortion?: boolean);
-        getTypeName(): string;
-    }
-}
-
-declare var HMDVRDevice: any;
-declare var PositionSensorVRDevice: any;
-declare module BABYLON {
-    class WebVRFreeCamera extends FreeCamera {
-        _hmdDevice: any;
-        _sensorDevice: any;
-        private _cacheState;
-        _vrEnabled: boolean;
-        private _initialQuaternion;
-        private _quaternionCache;
-        constructor(name: string, position: Vector3, scene: Scene, compensateDistortion?: boolean, vrCameraMetrics?: VRCameraMetrics);
-        private _getWebVRDevices(devices);
-        _checkInputs(): void;
-        attachControl(element: HTMLElement, noPreventDefault?: boolean): void;
-        detachControl(element: HTMLElement): void;
-        requestVRFullscreen(requestPointerlock: boolean): void;
-        getTypeName(): string;
-        resetToCurrentRotation(axis?: BABYLON.Axis): void;
-    }
-}
-
-declare module BABYLON {
     interface IOctreeContainer<T> {
         blocks: Array<OctreeBlock<T>>;
     }
@@ -12939,9 +11767,9 @@ declare module BABYLON {
         private _boundingVectors;
         private _creationFunc;
         constructor(minPoint: Vector3, maxPoint: Vector3, capacity: number, depth: number, maxDepth: number, creationFunc: (entry: T, block: OctreeBlock<T>) => void);
-        capacity: number;
-        minPoint: Vector3;
-        maxPoint: Vector3;
+        readonly capacity: number;
+        readonly minPoint: Vector3;
+        readonly maxPoint: Vector3;
         addEntry(entry: T): void;
         addEntries(entries: T[]): void;
         select(frustumPlanes: Plane[], selection: SmartArray<T>, allowDuplicate?: boolean): void;
@@ -12949,6 +11777,9 @@ declare module BABYLON {
         intersectsRay(ray: Ray, selection: SmartArray<T>): void;
         createInnerBlocks(): void;
     }
+}
+
+declare module BABYLON.Internals {
 }
 
 declare module BABYLON {
@@ -12961,10 +11792,10 @@ declare module BABYLON {
         private static _FILTER_VARIANCESHADOWMAP;
         private static _FILTER_POISSONSAMPLING;
         private static _FILTER_BLURVARIANCESHADOWMAP;
-        static FILTER_NONE: number;
-        static FILTER_VARIANCESHADOWMAP: number;
-        static FILTER_POISSONSAMPLING: number;
-        static FILTER_BLURVARIANCESHADOWMAP: number;
+        static readonly FILTER_NONE: number;
+        static readonly FILTER_VARIANCESHADOWMAP: number;
+        static readonly FILTER_POISSONSAMPLING: number;
+        static readonly FILTER_BLURVARIANCESHADOWMAP: number;
         private _filter;
         blurScale: number;
         private _blurBoxOffset;
@@ -13014,9 +11845,6 @@ declare module BABYLON {
     }
 }
 
-declare module BABYLON.Internals {
-}
-
 declare module BABYLON {
     class BaseTexture {
         name: string;
@@ -13030,6 +11858,7 @@ declare module BABYLON {
         anisotropicFilteringLevel: number;
         isCube: boolean;
         isRenderTarget: boolean;
+        readonly uid: string;
         toString(): string;
         animations: Animation[];
         /**
@@ -13043,6 +11872,7 @@ declare module BABYLON {
         _cachedAnisotropicFilteringLevel: number;
         private _scene;
         _texture: WebGLTexture;
+        private _uid;
         constructor(scene: Scene);
         getScene(): Scene;
         getTextureMatrix(): Matrix;
@@ -13052,7 +11882,7 @@ declare module BABYLON {
         getSize(): ISize;
         getBaseSize(): ISize;
         scale(ratio: number): void;
-        canRescale: boolean;
+        readonly canRescale: boolean;
         _removeFromCache(url: string, noMipmap: boolean): void;
         _getFromCache(url: string, noMipmap: boolean, sampling?: number): WebGLTexture;
         delayLoad(): void;
@@ -13153,7 +11983,7 @@ declare module BABYLON {
         private _extensions;
         private _textureMatrix;
         static CreateFromImages(files: string[], scene: Scene, noMipmap?: boolean): CubeTexture;
-        constructor(rootUrl: string, scene: Scene, extensions?: string[], noMipmap?: boolean, files?: string[]);
+        constructor(rootUrl: string, scene: Scene, extensions?: string[], noMipmap?: boolean, files?: string[], onLoad?: () => void, onError?: () => void);
         delayLoad(): void;
         getReflectionTextureMatrix(): Matrix;
         static Parse(parsedTexture: any, scene: Scene, rootUrl: string): CubeTexture;
@@ -13167,77 +11997,13 @@ declare module BABYLON {
         private _canvas;
         private _context;
         constructor(name: string, options: any, scene: Scene, generateMipMaps: boolean, samplingMode?: number);
-        canRescale: boolean;
+        readonly canRescale: boolean;
         scale(ratio: number): void;
         getContext(): CanvasRenderingContext2D;
         clear(): void;
         update(invertY?: boolean): void;
         drawText(text: string, x: number, y: number, font: string, color: string, clearColor: string, invertY?: boolean, update?: boolean): void;
         clone(): DynamicTexture;
-    }
-}
-
-declare module BABYLON {
-    /**
-     * This class given information about a given character.
-     */
-    class CharInfo {
-        /**
-         * The normalized ([0;1]) top/left position of the character in the texture
-         */
-        topLeftUV: Vector2;
-        /**
-         * The normalized ([0;1]) right/bottom position of the character in the texture
-         */
-        bottomRightUV: Vector2;
-        charWidth: number;
-    }
-    class FontTexture extends Texture {
-        private _canvas;
-        private _context;
-        private _lineHeight;
-        private _lineHeightSuper;
-        private _offset;
-        private _currentFreePosition;
-        private _charInfos;
-        private _curCharCount;
-        private _lastUpdateCharCount;
-        private _spaceWidth;
-        private _spaceWidthSuper;
-        private _usedCounter;
-        private _superSample;
-        isSuperSampled: boolean;
-        spaceWidth: number;
-        lineHeight: number;
-        static GetCachedFontTexture(scene: Scene, fontName: string, supersample?: boolean): FontTexture;
-        static ReleaseCachedFontTexture(scene: Scene, fontName: string, supersample?: boolean): void;
-        /**
-         * Create a new instance of the FontTexture class
-         * @param name the name of the texture
-         * @param font the font to use, use the W3C CSS notation
-         * @param scene the scene that owns the texture
-         * @param maxCharCount the approximative maximum count of characters that could fit in the texture. This is an approximation because most of the fonts are proportional (each char has its own Width). The 'W' character's width is used to compute the size of the texture based on the given maxCharCount
-         * @param samplingMode the texture sampling mode
-         * @param superSample if true the FontTexture will be created with a font of a size twice bigger than the given one but all properties (lineHeight, charWidth, etc.) will be according to the original size. This is made to improve the text quality.
-         */
-        constructor(name: string, font: string, scene: Scene, maxCharCount?: number, samplingMode?: number, superSample?: boolean);
-        /**
-         * Make sure the given char is present in the font map.
-         * @param char the character to get or add
-         * @return the CharInfo instance corresponding to the given character
-         */
-        getChar(char: string): CharInfo;
-        measureText(text: string, tabulationSize?: number): Size;
-        private getSuperSampleFont(font);
-        private getFontHeight(font);
-        canRescale: boolean;
-        getContext(): CanvasRenderingContext2D;
-        /**
-         * Call this method when you've call getChar() at least one time, this will update the texture if needed.
-         * Don't be afraid to call it, if no new character was added, this method simply does nothing.
-         */
-        update(): void;
-        clone(): FontTexture;
     }
 }
 
@@ -13323,7 +12089,7 @@ declare module BABYLON {
          * @param onError Method called if any error happens during download.
          * @return The packed binary data.
          */
-        static generateBabylonHDR(url: string, size: number, callback: ((ArrayBuffer) => void), onError?: (() => void)): void;
+        static generateBabylonHDR(url: string, size: number, callback: ((ArrayBuffer: ArrayBuffer) => void), onError?: (() => void)): void;
     }
 }
 
@@ -13349,7 +12115,7 @@ declare module BABYLON {
          * This is the cumulated space, not the biggest available surface. Due to fragmentation you may not allocate a rect corresponding to this surface.
          * @returns {}
          */
-        freeSpace: number;
+        readonly freeSpace: number;
         /**
          * Bind the texture to the rendering engine to render in the zone of a given rectangle.
          * Use this method when you want to render into the texture map with a clipspace set to the location and size of the given rect.
@@ -13373,7 +12139,7 @@ declare module BABYLON {
          * @param dumpForDebug if set to true the content of the texture map will be dumped to a picture file that will be sent to the internet browser.
          */
         unbindTexture(dumpForDebug?: boolean): void;
-        canRescale: boolean;
+        readonly canRescale: boolean;
         clone(): MapTexture;
     }
 }
@@ -13384,7 +12150,7 @@ declare module BABYLON {
         private _transformMatrix;
         private _mirrorMatrix;
         private _savedViewMatrix;
-        constructor(name: string, size: number, scene: Scene, generateMipMaps?: boolean);
+        constructor(name: string, size: any, scene: Scene, generateMipMaps?: boolean, type?: number, samplingMode?: number, generateDepthBuffer?: boolean);
         clone(): MirrorTexture;
         serialize(): any;
     }
@@ -13425,14 +12191,14 @@ declare module BABYLON {
         static _REFRESHRATE_RENDER_ONCE: number;
         static _REFRESHRATE_RENDER_ONEVERYFRAME: number;
         static _REFRESHRATE_RENDER_ONEVERYTWOFRAMES: number;
-        static REFRESHRATE_RENDER_ONCE: number;
-        static REFRESHRATE_RENDER_ONEVERYFRAME: number;
-        static REFRESHRATE_RENDER_ONEVERYTWOFRAMES: number;
+        static readonly REFRESHRATE_RENDER_ONCE: number;
+        static readonly REFRESHRATE_RENDER_ONEVERYFRAME: number;
+        static readonly REFRESHRATE_RENDER_ONEVERYTWOFRAMES: number;
         /**
         * Use this predicate to dynamically define the list of mesh you want to render.
         * If set, the renderList property will be overwritten.
         */
-        renderListPredicate: (AbstractMesh) => boolean;
+        renderListPredicate: (AbstractMesh: AbstractMesh) => boolean;
         /**
         * Use this list to define the list of mesh you want to render.
         */
@@ -13479,18 +12245,42 @@ declare module BABYLON {
         private _currentRefreshId;
         private _refreshRate;
         private _textureMatrix;
-        constructor(name: string, size: any, scene: Scene, generateMipMaps?: boolean, doNotChangeAspectRatio?: boolean, type?: number, isCube?: boolean, samplingMode?: number);
+        protected _renderTargetOptions: {
+            generateMipMaps: boolean;
+            type: number;
+            samplingMode: number;
+            generateDepthBuffer: boolean;
+            generateStencilBuffer: boolean;
+        };
+        constructor(name: string, size: any, scene: Scene, generateMipMaps?: boolean, doNotChangeAspectRatio?: boolean, type?: number, isCube?: boolean, samplingMode?: number, generateDepthBuffer?: boolean, generateStencilBuffer?: boolean);
         resetRefreshCounter(): void;
         refreshRate: number;
         _shouldRender(): boolean;
         isReady(): boolean;
         getRenderSize(): number;
-        canRescale: boolean;
+        readonly canRescale: boolean;
         scale(ratio: number): void;
         getReflectionTextureMatrix(): Matrix;
-        resize(size: any, generateMipMaps?: boolean): void;
+        resize(size: any): void;
         render(useCameraPostProcess?: boolean, dumpForDebug?: boolean): void;
         renderToTarget(faceIndex: number, currentRenderList: AbstractMesh[], currentRenderListLength: number, useCameraPostProcess: boolean, dumpForDebug: boolean): void;
+        /**
+         * Overrides the default sort function applied in the renderging group to prepare the meshes.
+         * This allowed control for front to back rendering or reversly depending of the special needs.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param opaqueSortCompareFn The opaque queue comparison function use to sort.
+         * @param alphaTestSortCompareFn The alpha test queue comparison function use to sort.
+         * @param transparentSortCompareFn The transparent queue comparison function use to sort.
+         */
+        setRenderingOrder(renderingGroupId: number, opaqueSortCompareFn?: (a: SubMesh, b: SubMesh) => number, alphaTestSortCompareFn?: (a: SubMesh, b: SubMesh) => number, transparentSortCompareFn?: (a: SubMesh, b: SubMesh) => number): void;
+        /**
+         * Specifies whether or not the stencil and depth buffer are cleared between two rendering groups.
+         *
+         * @param renderingGroupId The rendering group id corresponding to its index
+         * @param autoClearDepthStencil Automatically clears depth and stencil between groups if true.
+         */
+        setRenderingAutoClearDepthStencil(renderingGroupId: number, autoClearDepthStencil: boolean): void;
         clone(): RenderTargetTexture;
         serialize(): any;
     }
@@ -13521,7 +12311,7 @@ declare module BABYLON {
         uAng: number;
         vAng: number;
         wAng: number;
-        noMipmap: boolean;
+        readonly noMipmap: boolean;
         private _noMipmap;
         _invertY: boolean;
         private _rowGenerationMatrix;
@@ -13551,9 +12341,10 @@ declare module BABYLON {
         getTextureMatrix(): Matrix;
         getReflectionTextureMatrix(): Matrix;
         clone(): Texture;
-        onLoadObservable: Observable<boolean>;
+        readonly onLoadObservable: Observable<boolean>;
         static CreateFromBase64String(data: string, name: string, scene: Scene, noMipmap?: boolean, invertY?: boolean, samplingMode?: number, onLoad?: () => void, onError?: () => void): Texture;
         static Parse(parsedTexture: any, scene: Scene, rootUrl: string): BaseTexture;
+        static LoadFromDataString(name: string, buffer: any, scene: Scene, deleteBuffer?: boolean, noMipmap?: boolean, invertY?: boolean, samplingMode?: number, onLoad?: () => void, onError?: () => void): Texture;
     }
 }
 
@@ -13575,6 +12366,12 @@ declare module BABYLON {
         constructor(name: string, urlsOrVideo: string[] | HTMLVideoElement, scene: Scene, generateMipMaps?: boolean, invertY?: boolean, samplingMode?: number);
         private _createTexture();
         update(): boolean;
+        static CreateFromWebCam(scene: Scene, onReady: (videoTexture: VideoTexture) => void, constraints: {
+            minWidth: number;
+            maxWidth: number;
+            minHeight: number;
+            maxHeight: number;
+        }): void;
     }
 }
 
@@ -13629,7 +12426,7 @@ declare module BABYLON {
 }
 
 declare module BABYLON {
-    class OimoJSPlugin {
+    class OimoJSPlugin implements IPhysicsEnginePlugin {
         world: any;
         name: string;
         constructor(iterations?: number);
@@ -13655,7 +12452,7 @@ declare module BABYLON {
         setBodyMass(impostor: PhysicsImpostor, mass: number): void;
         sleepBody(impostor: PhysicsImpostor): void;
         wakeUpBody(impostor: PhysicsImpostor): void;
-        updateDistanceJoint(joint: IMotorEnabledJoint, maxDistance: number, minDistance?: number): void;
+        updateDistanceJoint(joint: PhysicsJoint, maxDistance: number, minDistance?: number): void;
         setMotor(joint: IMotorEnabledJoint, speed: number, maxForce?: number, motorIndex?: number): void;
         setLimit(joint: IMotorEnabledJoint, upperLimit: number, lowerLimit?: number, motorIndex?: number): void;
         dispose(): void;
@@ -13675,7 +12472,7 @@ declare module BABYLON {
         _name: string;
         applyParameters: (postProcess: PostProcess) => void;
         constructor(engine: Engine, name: string, getPostProcess: () => PostProcess, singleInstance?: boolean);
-        isSupported: boolean;
+        readonly isSupported: boolean;
         _update(): void;
         addPass(renderPass: PostProcessRenderPass): void;
         removePass(renderPass: PostProcessRenderPass): void;
@@ -13723,7 +12520,7 @@ declare module BABYLON {
         private static PASS_EFFECT_NAME;
         private static PASS_SAMPLER_NAME;
         constructor(engine: Engine, name: string);
-        isSupported: boolean;
+        readonly isSupported: boolean;
         addEffect(renderEffect: PostProcessRenderEffect): void;
         _enableEffect(renderEffectName: string, cameras: Camera): any;
         _enableEffect(renderEffectName: string, cameras: Camera[]): any;

@@ -193,6 +193,8 @@
         private _previousRadius: number;
         //due to async collision inspection
         private _collisionTriggered: boolean;
+        
+        private _targetBoundingCenter: Vector3;
 
         constructor(name: string, alpha: number, beta: number, radius: number, target: Vector3, scene: Scene) {
             super(name, Vector3.Zero(), scene);
@@ -210,7 +212,7 @@
             this.getViewMatrix();
             this.inputs = new ArcRotateCameraInputsManager(this);
             this.inputs.addKeyboard().addMouseWheel().addPointers().addGamepad();
-        }
+        }      
 
         // Cache
         public _initCache(): void {
@@ -236,7 +238,8 @@
 
         private _getTargetPosition(): Vector3 {
             if ((<any>this.target).getAbsolutePosition) {
-                return (<any>this.target).getAbsolutePosition();
+                var pos : Vector3 = (<any>this.target).getAbsolutePosition();
+                return this._targetBoundingCenter ? pos.add(this._targetBoundingCenter) : pos;
             }
 
             return this.target;
@@ -285,8 +288,15 @@
             this.inputs.checkInputs();
             // Inertia
             if (this.inertialAlphaOffset !== 0 || this.inertialBetaOffset !== 0 || this.inertialRadiusOffset !== 0) {
-                this.alpha += this.beta <= 0 ? -this.inertialAlphaOffset : this.inertialAlphaOffset;
+                
+                if (this.getScene().useRightHandedSystem) {
+                    this.alpha -= this.beta <= 0 ? -this.inertialAlphaOffset : this.inertialAlphaOffset;
+                } else {
+                    this.alpha += this.beta <= 0 ? -this.inertialAlphaOffset : this.inertialAlphaOffset;
+                }
+
                 this.beta += this.inertialBetaOffset;
+
                 this.radius -= this.inertialRadiusOffset;
                 this.inertialAlphaOffset *= this.inertia;
                 this.inertialBetaOffset *= this.inertia;
@@ -396,9 +406,15 @@
             this.rebuildAnglesAndRadius();
         }
 
-        public setTarget(target: Vector3): void {
+        public setTarget(target: Vector3, toBoundingCenter = false): void {            
             if (this._getTargetPosition().equals(target)) {
                 return;
+            }
+            
+            if (toBoundingCenter && (<any>target).getBoundingInfo){
+                this._targetBoundingCenter = (<any>target).getBoundingInfo().boundingBox.center.clone();
+            }else{
+                this._targetBoundingCenter = null;
             }
             this.target = target;
             this.rebuildAnglesAndRadius();
@@ -431,10 +447,15 @@
                     up = up.negate();
                 }
 
-                Matrix.LookAtLHToRef(this.position, target, up, this._viewMatrix);
+                if (this.getScene().useRightHandedSystem) {
+                    Matrix.LookAtRHToRef(this.position, target, up, this._viewMatrix);
+                } else {
+                    Matrix.LookAtLHToRef(this.position, target, up, this._viewMatrix);
+                }
                 this._viewMatrix.m[12] += this.targetScreenOffset.x;
                 this._viewMatrix.m[13] += this.targetScreenOffset.y;
             }
+            this._currentTarget = target;
             return this._viewMatrix;
         }
 
@@ -567,7 +588,7 @@
             super.dispose();
         }
 
-        public getTypeName(): string {
+        public getClassName(): string {
             return "ArcRotateCamera";
         }
     }

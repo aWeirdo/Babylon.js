@@ -28,6 +28,9 @@ module BABYLON {
         attachControl(element: HTMLElement, noPreventDefault?: boolean) {
             window.addEventListener("orientationchange", this._orientationChanged);
             window.addEventListener("deviceorientation", this._deviceOrientation);
+            //In certain cases, the attach control is called AFTER orientation was changed,
+            //So this is needed.
+            this._orientationChanged();
         }
 
         private _orientationChanged = () => {
@@ -48,6 +51,9 @@ module BABYLON {
         }
 
         public checkInputs() {
+            //if no device orientation provided, don't update the rotation.
+            //Only testing against alpha under the assumption thatnorientation will never be so exact when set.
+            if(!this._alpha) return;
             Quaternion.RotationYawPitchRollToRef(BABYLON.Tools.ToRadians(this._alpha), BABYLON.Tools.ToRadians(this._beta), -BABYLON.Tools.ToRadians(this._gamma), this.camera.rotationQuaternion)
             this._camera.rotationQuaternion.multiplyInPlace(this._screenQuaternion);
             this._camera.rotationQuaternion.multiplyInPlace(this._constantTranform);

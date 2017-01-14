@@ -13,6 +13,10 @@
 
             this.direction = direction;
         }
+        
+        public getClassName(): string {
+            return "HemisphericLight";
+        }          
 
         public setDirectionToTarget(target: Vector3): Vector3 {
             this.direction = Vector3.Normalize(target.subtract(Vector3.Zero()));
@@ -25,7 +29,13 @@
 
         public transferToEffect(effect: Effect, directionUniformName: string, groundColorUniformName: string): void {
             var normalizeDirection = Vector3.Normalize(this.direction);
-            effect.setFloat4(directionUniformName, normalizeDirection.x, normalizeDirection.y, normalizeDirection.z, 0);
+
+            effect.setFloat4(directionUniformName,
+                normalizeDirection.x,
+                normalizeDirection.y,
+                normalizeDirection.z,
+                0);
+
             effect.setColor3(groundColorUniformName, this.groundColor.scale(this.intensity));
         }
 

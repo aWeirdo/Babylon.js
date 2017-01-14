@@ -30,6 +30,10 @@
             this._syncSubMeshes();
         }
 
+        public getClassName(): string {
+            return "InstancedMesh";
+        }          
+
         // Methods
         public get receiveShadows(): boolean {
             return this._sourceMesh.receiveShadows;
@@ -149,7 +153,7 @@
             return result;
         }
 
-        // Dispoe
+        // Dispose
         public dispose(doNotRecurse?: boolean): void {
 
             // Remove from mesh

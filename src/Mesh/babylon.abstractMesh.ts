@@ -30,20 +30,6 @@
         // Events
 
         /**
-        * An event triggered when the mesh is disposed.
-        * @type {BABYLON.Observable}
-        */
-        public onDisposeObservable = new Observable<AbstractMesh>();
-
-        private _onDisposeObserver: Observer<AbstractMesh>;
-        public set onDispose(callback: () => void) {
-            if (this._onDisposeObserver) {
-                this.onDisposeObservable.remove(this._onDisposeObserver);
-            }
-            this._onDisposeObserver = this.onDisposeObservable.add(callback);
-        }
-
-        /**
         * An event triggered when this mesh collides with another one
         * @type {BABYLON.Observable}
         */
@@ -204,6 +190,10 @@
             super(name, scene);
 
             scene.addMesh(this);
+        }
+
+        public getClassName(): string {
+            return "AbstractMesh";
         }
 
         /**
@@ -374,7 +364,7 @@
                 this.rotation = Vector3.Zero();
             }
             var rotationQuaternion: Quaternion;
-            if (!space || space === Space.LOCAL) {
+            if (!space || (space as any) === Space.LOCAL) {
                 rotationQuaternion = Quaternion.RotationAxisToRef(axis, amount, AbstractMesh._rotationAxisCache);
                 this.rotationQuaternion.multiplyToRef(rotationQuaternion, this.rotationQuaternion);
             }
@@ -393,7 +383,7 @@
         public translate(axis: Vector3, distance: number, space?: Space): void {
             var displacementVector = axis.scale(distance);
 
-            if (!space || space === Space.LOCAL) {
+            if (!space || (space as any) === Space.LOCAL) {
                 var tempV3 = this.getPositionExpressedInLocalSpace().add(displacementVector);
                 this.setPositionWithLocalVector(tempV3);
             }
@@ -794,7 +784,7 @@
             return this._boundingInfo.isCompletelyInFrustum(frustumPlanes);;
         }
 
-        public intersectsMesh(mesh: AbstractMesh, precise?: boolean): boolean {
+        public intersectsMesh(mesh: AbstractMesh | SolidParticle, precise?: boolean): boolean {
             if (!this._boundingInfo || !mesh._boundingInfo) {
                 return false;
             }
@@ -889,7 +879,7 @@
          * @Deprecated
          */
         public updatePhysicsBodyPosition(): void {
-            Tools.Warn("updatePhysicsBodyPosition() is deprecated, please use updatePhysicsBody()")
+            Tools.Warn("updatePhysicsBodyPosition() is deprecated, please use updatePhysicsBody()");
             this.updatePhysicsBody();
         }
 
@@ -1162,6 +1152,16 @@
                 if (meshIndex !== -1) {
                     light.excludedMeshes.splice(meshIndex, 1);
                 }
+
+                // Shadow generators
+                var generator = light.getShadowGenerator();
+                if (generator) {
+                    meshIndex = generator.getShadowMap().renderList.indexOf(this);
+
+                    if (meshIndex !== -1) {
+                        generator.getShadowMap().renderList.splice(meshIndex, 1);
+                    }
+                }
             });
 
             // Edges
@@ -1171,7 +1171,12 @@
             }
 
             // SubMeshes
-            this.releaseSubMeshes();
+            if (this.getClassName() !== "InstancedMesh"){
+                this.releaseSubMeshes();
+            }
+
+            // Engine
+            this.getScene().getEngine().wipeCaches();
 
             // Remove from scene
             this.getScene().removeMesh(this);
@@ -1199,17 +1204,176 @@
                 }
             }
 
-            super.dispose();
-
             this.onAfterWorldMatrixUpdateObservable.clear();
             this.onCollideObservable.clear();
             this.onCollisionPositionChangeObservable.clear();
 
             this._isDisposed = true;
 
-            // Callback
-            this.onDisposeObservable.notifyObservers(this);
-            this.onDisposeObservable.clear();
+            super.dispose();
         }
+
+        public getDirection(localAxis:Vector3): Vector3 {
+            var result = Vector3.Zero();
+
+            this.getDirectionToRef(localAxis, result);
+            
+            return result;
+        }
+
+        public getDirectionToRef(localAxis:Vector3, result:Vector3): void {
+            Vector3.TransformNormalToRef(localAxis, this.getWorldMatrix(), result);
+        }
+
+        public setPivotPoint(point:Vector3, space:Space = Space.LOCAL): void{
+
+            if(this.getScene().getRenderId() == 0){
+                this.computeWorldMatrix(true);
+            }
+
+            var wm = this.getWorldMatrix();
+            
+            if (space == Space.WORLD) {
+                var tmat = Tmp.Matrix[0];
+                wm.invertToRef(tmat);
+                point = Vector3.TransformCoordinates(point, tmat);
+            }
+
+            Vector3.TransformCoordinatesToRef(point, wm, this.position);
+
+            this._pivotMatrix.m[12] = -point.x;
+            this._pivotMatrix.m[13] = -point.y;
+            this._pivotMatrix.m[14] = -point.z;
+
+            this._cache.pivotMatrixUpdated = true;
+
+        }
+
+        public getPivotPoint(): Vector3 {
+
+            var point = Vector3.Zero();
+
+            this.getPivotPointToRef(point);
+
+            return point;
+
+        }
+
+        public getPivotPointToRef(result:Vector3): void{
+
+            result.x = -this._pivotMatrix.m[12];
+            result.y = -this._pivotMatrix.m[13];
+            result.z = -this._pivotMatrix.m[14];
+
+        }
+
+        public getAbsolutePivotPoint(): Vector3 {
+
+            var point = Vector3.Zero();
+
+            this.getAbsolutePivotPointToRef(point);
+
+            return point;
+
+        }
+
+        public setParent(mesh:AbstractMesh, keepWorldPositionRotation = false): void{
+
+            var child = this;
+            var parent = mesh;
+
+            if(mesh == null){
+
+                if(child.parent && keepWorldPositionRotation){
+                  
+                    var rotation = Tmp.Quaternion[0];
+                    var position = Tmp.Vector3[0];
+                    var scale = Tmp.Vector3[1];
+
+                    child.getWorldMatrix().decompose(scale, rotation, position);
+
+                    if (child.rotationQuaternion) {
+                        child.rotationQuaternion.copyFrom(rotation);
+                    } else {
+                        rotation.toEulerAnglesToRef(child.rotation);
+                    }
+
+                    child.position.x = position.x;
+                    child.position.y = position.y;
+                    child.position.z = position.z;
+
+               }
+
+            } else {
+
+                if(keepWorldPositionRotation){
+                    
+                    var rotation = Tmp.Quaternion[0];
+                    var position = Tmp.Vector3[0];
+                    var scale = Tmp.Vector3[1];
+                    var m1 = Tmp.Matrix[0];
+                    var m2 = Tmp.Matrix[1];
+
+                    parent.getWorldMatrix().decompose(scale, rotation, position);
+
+                    rotation.toRotationMatrix(m1);
+                    m2.setTranslation(position);
+
+                    m2.multiplyToRef(m1, m1);
+
+                    var invParentMatrix = Matrix.Invert(m1);
+
+                    var m = child.getWorldMatrix().multiply(invParentMatrix);
+
+                    m.decompose(scale, rotation, position);
+
+                    if (child.rotationQuaternion) {
+                        child.rotationQuaternion.copyFrom(rotation);
+                    } else {
+                        rotation.toEulerAnglesToRef(child.rotation);
+                    }
+
+                    invParentMatrix = Matrix.Invert(parent.getWorldMatrix());
+
+                    var m = child.getWorldMatrix().multiply(invParentMatrix);
+
+                    m.decompose(scale, rotation, position);
+
+                    child.position.x = position.x;
+                    child.position.y = position.y;
+                    child.position.z = position.z;
+
+                }
+
+            }
+
+            child.parent = parent;
+
+        }
+
+        public addChild(mesh:AbstractMesh, keepWorldPositionRotation = false): void{
+
+            mesh.setParent(this, keepWorldPositionRotation);
+
+        }
+
+        public removeChild(mesh:AbstractMesh, keepWorldPositionRotation = false): void{
+
+            mesh.setParent(null, keepWorldPositionRotation);
+
+        }
+
+        public getAbsolutePivotPointToRef(result:Vector3): void{
+
+            result.x = this._pivotMatrix.m[12];
+            result.y = this._pivotMatrix.m[13];
+            result.z = this._pivotMatrix.m[14];
+
+            this.getPivotPointToRef(result);
+
+            Vector3.TransformCoordinatesToRef(result, this.getWorldMatrix(), result);
+
+        }
+
     }
 }

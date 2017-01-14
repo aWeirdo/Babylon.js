@@ -5,6 +5,7 @@
             var needNormals = false;
             var needRebuild = false;
             var needShadows = false;
+            var lightmapMode = false;
 
             for (var index = 0; index < scene.lights.length; index++) {
                 var light = scene.lights[index];
@@ -103,6 +104,20 @@
                     }
                 }
 
+                if (light.lightmapMode != Light.LIGHTMAP_DEFAULT ) {
+                    lightmapMode = true;
+                    if (defines["LIGHTMAPEXCLUDED" + lightIndex] === undefined) {
+                        needRebuild = true;
+                    }
+                    if (defines["LIGHTMAPNOSPECULAR" + lightIndex] === undefined) {
+                        needRebuild = true;
+                    }
+                    defines["LIGHTMAPEXCLUDED" + lightIndex] = true;
+                    if (light.lightmapMode == Light.LIGHTMAP_SHADOWSONLY) {
+                        defines["LIGHTMAPNOSPECULAR" + lightIndex] = true;
+                    }
+                }
+
                 lightIndex++;
                 if (lightIndex === maxSimultaneousLights)
                     break;
@@ -115,6 +130,13 @@
                 }
 
                 defines["SHADOWFULLFLOAT"] = true;
+            }
+
+            if (defines["LIGHTMAPEXCLUDED"] === undefined) {
+                needRebuild = true;
+            }
+            if (lightmapMode) {
+                defines["LIGHTMAPEXCLUDED"] = true;
             }
 
             if (needRebuild) {
@@ -269,7 +291,11 @@
 
         public static BindBonesParameters(mesh: AbstractMesh, effect: Effect): void {
             if (mesh && mesh.useBones && mesh.computeBonesUsingShaders) {
-                effect.setMatrices("mBones", mesh.skeleton.getTransformMatrices(mesh));
+                var matrices = mesh.skeleton.getTransformMatrices(mesh);
+
+                if (matrices) {
+                    effect.setMatrices("mBones", matrices);
+                }
             }
         }
 

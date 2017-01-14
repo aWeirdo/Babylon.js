@@ -13,6 +13,8 @@
 
         private _ranges: { [name: string]: AnimationRange; } = {};
 
+        private _lastAbsoluteTransformsUpdateId = -1;
+
         constructor(public name: string, public id: string, scene: Scene) {
             this.bones = [];
 
@@ -29,6 +31,11 @@
             if (this.needInitialSkinMatrix && mesh._bonesTransformMatrices) {
                 return mesh._bonesTransformMatrices;
             }
+
+            if (!this._transformMatrices) {
+                this.prepare();
+            }
+
             return this._transformMatrices;
         }
 
@@ -402,5 +409,29 @@
             }
             return skeleton;
         }
+
+        public computeAbsoluteTransforms (forceUpdate = false): void {
+
+            var renderId = this._scene.getRenderId();
+            
+            if (this._lastAbsoluteTransformsUpdateId != renderId || forceUpdate ) {
+                this.bones[0].computeAbsoluteTransforms();
+                this._lastAbsoluteTransformsUpdateId = renderId;
+            }
+            
+        }
+
+        public getPoseMatrix(): Matrix {
+            
+            var poseMatrix: Matrix;
+            
+            if(this._meshesWithPoseMatrix.length > 0){
+                poseMatrix = this._meshesWithPoseMatrix[0].getPoseMatrix();
+            }
+
+            return poseMatrix;
+
+        }
+
     }
 }

@@ -266,9 +266,9 @@
 
             this._shadowMap.onClearObservable.add((engine: Engine) => {
                 if (this.useBlurVarianceShadowMap || this.useVarianceShadowMap) {
-                    engine.clear(new Color4(0, 0, 0, 0), true, true);
+                    engine.clear(new Color4(0, 0, 0, 0), true, true, true);
                 } else {
-                    engine.clear(new Color4(1.0, 1.0, 1.0, 1.0), true, true);
+                    engine.clear(new Color4(1.0, 1.0, 1.0, 1.0), true, true, true);
                 }
             });
         }
@@ -436,6 +436,8 @@
             if (this._boxBlurPostprocess) {
                 this._boxBlurPostprocess.dispose();
             }
+
+            this._light._shadowGenerator = null;
         }
 
         public serialize(): any {
