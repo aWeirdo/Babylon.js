@@ -1622,10 +1622,7 @@
             }
 
             if (settings.layoutData) {
-                let p = this.parent;
-                if (p && p.layoutEngine) {
-                    p.layoutEngine.newChild(this, settings.layoutData);
-                }
+                this.layoutData = settings.layoutData;
             }
 
             // Dirty layout and positioning
@@ -2031,6 +2028,8 @@
             } else {
                 this._size.copyFrom(value);
             }
+            this._actualSize = null;
+            this._positioningDirty();
         }
 
         /**
@@ -2056,6 +2055,7 @@
                 this.size.width = value;
             }
 
+            this._actualSize = null;
             this._triggerPropertyChanged(Prim2DBase.sizeProperty, value);
             this._positioningDirty();
         }
@@ -2083,6 +2083,7 @@
                 this.size.height = value;
             }
 
+            this._actualSize = null;
             this._triggerPropertyChanged(Prim2DBase.sizeProperty, value);
             this._positioningDirty();
         }
@@ -2840,7 +2841,13 @@
             this._displayDebugAreas = value;
         }
 
+        private static _updatingDebugArea = false;
         private _updateDebugArea() {
+            if (Prim2DBase._updatingDebugArea === true) {
+                return;
+            }
+            Prim2DBase._updatingDebugArea = true;
+
             let areaNames = ["Layout", "Margin", "Padding", "Content"];
             let areaZones = ["Area", "Frame", "Top", "Left", "Right", "Bottom"];
 
@@ -3008,6 +3015,8 @@
                     ++curAreaIndex;
                 }
             }
+
+            Prim2DBase._updatingDebugArea = false;
         }
 
         public findById(id: string): Prim2DBase {
@@ -3919,6 +3928,21 @@
             newPrimSize.copyFrom(primSize);
         }
 
+        /**
+         * Get/set the layout data to use for this primitive.
+         */
+        public get layoutData(): ILayoutData {
+            return this._layoutData;
+        }
+
+        public set layoutData(value: ILayoutData) {
+            if (this._layoutData === value) {
+                return;
+            }
+
+            this._layoutData = value;
+        }
+
         private _owner: Canvas2D;
         private _parent: Prim2DBase;
         private _actionManager: ActionManager;
@@ -3952,6 +3976,7 @@
         private _lastAutoSizeArea: Size;
         private _layoutAreaPos: Vector2;
         private _layoutArea: Size;
+        private _layoutData: ILayoutData;
         private _contentArea: Size;
         private _rotation: number;
         private _scale: Vector2;

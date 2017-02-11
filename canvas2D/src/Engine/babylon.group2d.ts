@@ -43,6 +43,8 @@
          * - rotation: the initial rotation (in radian) of the primitive. default is 0
          * - scale: the initial scale of the primitive. default is 1. You can alternatively use scaleX &| scaleY to apply non uniform scale
          * - dontInheritParentScale: if set the parent's scale won't be taken into consideration to compute the actualScale property
+         * - trackNode: if you want the ScreenSpaceCanvas to track the position of a given Scene Node, use this setting to specify the Node to track
+         * - trackNodeOffset: if you use trackNode you may want to specify a 3D Offset to apply to shift the Canvas
          * - opacity: set the overall opacity of the primitive, 1 to be opaque (default), less than 1 to be transparent.
          * - zOrder: override the zOrder with the specified value
          * - origin: define the normalized origin point location, default [0.5;0.5]
@@ -83,6 +85,7 @@
             scaleY                  ?: number,
             dontInheritParentScale  ?: boolean,
             trackNode               ?: Node,
+            trackNodeOffset         ?: Vector3,
             opacity                 ?: number,
             zOrder                  ?: number, 
             origin                  ?: Vector2,
@@ -124,6 +127,7 @@
             let size = (!settings.size && !settings.width && !settings.height) ? null : (settings.size || (new Size(settings.width || 0, settings.height || 0)));
 
             this._trackedNode = (settings.trackNode == null) ? null : settings.trackNode;
+            this._trackedNodeOffset = (settings.trackNodeOffset == null) ? null : settings.trackNodeOffset;
             if (this._trackedNode && this.owner) {
                 this.owner._registerTrackedNode(this);
             }
@@ -342,6 +346,21 @@
                     this.owner._unregisterTrackedNode(this);
                 }
                 this._trackedNode = null;
+            }
+        }
+
+        /**
+         * Get/set the offset of the tracked node in the tracked node's local space.
+         */
+        public get trackedNodeOffset(): Vector3 {
+            return this._trackedNodeOffset;
+        }
+
+        public set trackedNodeOffset(val: Vector3) {
+            if (!this._trackedNodeOffset) {
+                this._trackedNodeOffset = val.clone();
+            } else {
+                this._trackedNodeOffset.copyFrom(val);
             }
         }
 
@@ -1033,6 +1052,7 @@
         }
 
         private _trackedNode: Node;
+        private _trackedNodeOffset: Vector3;
         protected _isRenderableGroup: boolean;
         protected _isCachedGroup: boolean;
         private _cacheGroupDirty: boolean;
