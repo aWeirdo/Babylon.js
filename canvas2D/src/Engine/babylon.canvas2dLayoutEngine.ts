@@ -1,5 +1,9 @@
 ﻿module BABYLON {
 
+    export interface ILayoutData {
+        
+    }
+
     @className("LayoutEngineBase", "BABYLON")
     /**
      * This is the base class you have to extend in order to implement your own Layout Engine.
@@ -9,6 +13,10 @@
     export class LayoutEngineBase implements ILockable {
         constructor() {
             this.layoutDirtyOnPropertyChangedMask = 0;
+        }
+
+        public newChild(child: Prim2DBase, data: ILayoutData) {
+            
         }
 
         public updateLayout(prim: Prim2DBase) {
@@ -41,7 +49,18 @@
      * This layout must be used as a Singleton through the CanvasLayoutEngine.Singleton property.
      */
     export class CanvasLayoutEngine extends LayoutEngineBase {
-        public static Singleton: CanvasLayoutEngine = new CanvasLayoutEngine();
+        private  static _singleton: CanvasLayoutEngine = null;
+        public static get Singleton(): CanvasLayoutEngine {
+            if (!CanvasLayoutEngine._singleton) {
+                CanvasLayoutEngine._singleton = new CanvasLayoutEngine();
+            }
+            return CanvasLayoutEngine._singleton;
+        } 
+
+        constructor() {
+            super();
+            this.layoutDirtyOnPropertyChangedMask = Prim2DBase.sizeProperty.flagId | Prim2DBase.actualSizeProperty.flagId;
+        }
 
         // A very simple (no) layout computing...
         // The Canvas and its direct children gets the Canvas' size as Layout Area
@@ -50,7 +69,6 @@
 
             // If this prim is layoutDiry we update  its layoutArea and also the one of its direct children
             if (prim._isFlagSet(SmartPropertyPrim.flagLayoutDirty)) {
-
                 for (let child of prim.children) {
                     this._doUpdate(child);
                 }
@@ -90,7 +108,7 @@
     export class StackPanelLayoutEngine extends LayoutEngineBase {
         constructor() {
             super();
-            this.layoutDirtyOnPropertyChangedMask = Prim2DBase.sizeProperty.flagId;
+            this.layoutDirtyOnPropertyChangedMask = Prim2DBase.sizeProperty.flagId | Prim2DBase.actualSizeProperty.flagId;
         }
 
         public static get Horizontal(): StackPanelLayoutEngine {
@@ -146,7 +164,7 @@
                     }
                     let layoutArea: Size;
                     if (child._hasMargin) {
-                        child.margin.computeWithAlignment(prim.layoutArea, child.actualSize, child.marginAlignment, StackPanelLayoutEngine.dstOffset, StackPanelLayoutEngine.dstArea, true);
+                        child.margin.computeWithAlignment(prim.layoutArea, child.actualSize, child.marginAlignment, child.actualScale, StackPanelLayoutEngine.dstOffset, StackPanelLayoutEngine.dstArea, true);
                         layoutArea = StackPanelLayoutEngine.dstArea.clone();
                         child.layoutArea = layoutArea;
                     } else {

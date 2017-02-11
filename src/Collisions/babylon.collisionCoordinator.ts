@@ -47,7 +47,7 @@ module BABYLON {
     export interface SerializedGeometry {
         id: string;
         positions: Float32Array;
-        indices: Int32Array;
+        indices: Uint32Array;
         normals: Float32Array;
         //uvs?: Float32Array;
     }
@@ -181,7 +181,7 @@ module BABYLON {
                 id: geometry.id,
                 positions: new Float32Array(geometry.getVerticesData(VertexBuffer.PositionKind) || []),
                 normals: new Float32Array(geometry.getVerticesData(VertexBuffer.NormalKind) || []),
-                indices: new Int32Array(geometry.getIndices() || []),
+                indices: new Uint32Array(geometry.getIndices() || []),
                 //uvs: new Float32Array(geometry.getVerticesData(VertexBuffer.UVKind) || [])
             }
         }
@@ -354,6 +354,8 @@ module BABYLON {
             collider.retry = 0;
             collider.initialVelocity = this._scaledVelocity;
             collider.initialPosition = this._scaledPosition;
+            collider._collisionMask = excludedMesh && excludedMesh._collisionMask ? excludedMesh._collisionMask : collider._collisionMask;
+            
             this._collideWithWorld(this._scaledPosition, this._scaledVelocity, collider, maximumRetry, this._finalPosition, excludedMesh);
 
             this._finalPosition.multiplyInPlace(collider.radius);
@@ -390,7 +392,8 @@ module BABYLON {
             // Check all meshes
             for (var index = 0; index < this._scene.meshes.length; index++) {
                 var mesh = this._scene.meshes[index];
-                if (mesh.isEnabled() && mesh.checkCollisions && mesh.subMeshes && mesh !== excludedMesh) {
+                if(!mesh._collisionGroup) mesh._collisionGroup = -1;
+                if (mesh.isEnabled() && mesh.checkCollisions && mesh.subMeshes && mesh !== excludedMesh &&  ((collider._collisionMask & mesh._collisionGroup) !== 0)) {
                     mesh._checkCollision(collider);
                 }
             }

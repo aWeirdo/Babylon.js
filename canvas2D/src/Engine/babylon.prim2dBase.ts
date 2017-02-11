@@ -1082,7 +1082,7 @@
          * @param dstOffset the position of the content, x, y, z, w are left, bottom, right, top
          * @param dstArea the new size of the content
          */
-        public computeWithAlignment(sourceArea: Size, contentSize: Size, alignment: PrimitiveAlignment, dstOffset: Vector4, dstArea: Size, computeLayoutArea = false) {
+        public computeWithAlignment(sourceArea: Size, contentSize: Size, alignment: PrimitiveAlignment, contentScale: Vector2, dstOffset: Vector4, dstArea: Size, computeLayoutArea = false) {
             // Fetch some data
             let topType = this._getType(0, true);
             let leftType = this._getType(1, true);
@@ -1090,6 +1090,8 @@
             let bottomType = this._getType(3, true);
             let hasWidth = contentSize && (contentSize.width != null);
             let hasHeight = contentSize && (contentSize.height != null);
+            let sx = contentScale.x;
+            let sy = contentScale.y;
             let width = hasWidth ? contentSize.width : 0;
             let height = hasHeight ? contentSize.height : 0;
             let isTopAuto = topType === PrimitiveThickness.Auto;
@@ -1110,17 +1112,17 @@
                         if (computeLayoutArea) {
                             dstArea.width += this.leftPixels;
                         }
-                        dstOffset.z = sourceArea.width - (dstOffset.x + width);
+                        dstOffset.z = sourceArea.width - (dstOffset.x + (width * sx));
                         break;
 
                     }
                 case PrimitiveAlignment.AlignRight:
                     {
                         if (isRightAuto) {
-                            dstOffset.x = Math.round(sourceArea.width - width);
+                            dstOffset.x = Math.round(sourceArea.width - (width * sx));
                         } else {
                             this._computePixels(2, sourceArea, true);
-                            dstOffset.x = Math.round(sourceArea.width - (width + this.rightPixels));
+                            dstOffset.x = Math.round(sourceArea.width - ((width * sx) + this.rightPixels));
                         }
                         dstArea.width = width;
                         if (computeLayoutArea) {
@@ -1157,9 +1159,9 @@
                         }
 
                         let offset = (isLeftAuto ? 0 : this.leftPixels) - (isRightAuto ? 0 : this.rightPixels);
-                        dstOffset.x = Math.round(((sourceArea.width - width) / 2) + offset);
+                        dstOffset.x = Math.round(((sourceArea.width - (width*sx)) / 2) + offset);
                         dstArea.width = width;
-                        dstOffset.z = sourceArea.width - (dstOffset.x + width);
+                        dstOffset.z = sourceArea.width - (dstOffset.x + (width*sx));
                         break;
                     }
             }
@@ -1168,10 +1170,10 @@
                 case PrimitiveAlignment.AlignTop:
                     {
                         if (isTopAuto) {
-                            dstOffset.y = sourceArea.height - height;
+                            dstOffset.y = sourceArea.height - (height * sy);
                         } else {
                             this._computePixels(0, sourceArea, true);
-                            dstOffset.y = Math.round(sourceArea.height - (height + this.topPixels));
+                            dstOffset.y = Math.round(sourceArea.height - ((height * sy) + this.topPixels));
                         }
                         dstArea.height = height;
                         if (computeLayoutArea) {
@@ -1193,7 +1195,7 @@
                         if (computeLayoutArea) {
                             dstArea.height += this.bottomPixels;
                         }
-                        dstOffset.w = sourceArea.height - (dstOffset.y + height);
+                        dstOffset.w = sourceArea.height - (dstOffset.y + (height * sy));
                         break;
 
                     }
@@ -1225,9 +1227,9 @@
                         }
 
                         let offset = (isBottomAuto ? 0 : this.bottomPixels) - (isTopAuto ? 0 : this.topPixels);
-                        dstOffset.y = Math.round(((sourceArea.height - height) / 2) + offset);
+                        dstOffset.y = Math.round(((sourceArea.height - (height * sy)) / 2) + offset);
                         dstArea.height = height;
-                        dstOffset.w = sourceArea.height - (dstOffset.y + height);
+                        dstOffset.w = sourceArea.height - (dstOffset.y + (height * sy));
                         break;
                     }
             }
@@ -1383,6 +1385,9 @@
             isPickable              ?: boolean,
             isContainer             ?: boolean,
             childrenFlatZOrder      ?: boolean,
+            levelCollision          ?: boolean,
+            deepCollision           ?: boolean,
+            layoutData              ?: ILayoutData,
             marginTop               ?: number | string,
             marginLeft              ?: number | string,
             marginRight             ?: number | string,
@@ -1443,7 +1448,6 @@
             this._lastAutoSizeArea = Size.Zero();
             this._contentArea = new Size(null, null);
             this._pointerEventObservable = new Observable<PrimitivePointerInfo>();
-            this._boundingInfo = new BoundingInfo2D();
             this._owner = owner;
             this._parent = null;
             this._margin = null;
@@ -1466,6 +1470,11 @@
             this._actualScale = Vector2.Zero();
             this._displayDebugAreas = false;
             this._debugAreaGroup = null;
+            this._primTriArray = null;
+            this._primTriArrayDirty = true;
+
+            this._levelBoundingInfo.worldMatrixAccess = () => this.globalTransform;
+            this._boundingInfo.worldMatrixAccess = () => this.globalTransform;
 
             let isPickable = true;
             let isContainer = true;
@@ -1511,7 +1520,7 @@
                     this.addChild(child);
 
                     // Good time to patch the hierarchy, it won't go very far if there's no need to
-                    if (this.owner != null) {
+                    if (this.owner != null && this._hierarchyDepth != null) {
                         child._patchHierarchy(this.owner);
                     }
                 }
@@ -1612,9 +1621,47 @@
                 this.padding.fromString(settings.padding);
             }
 
+            if (settings.layoutData) {
+                let p = this.parent;
+                if (p && p.layoutEngine) {
+                    p.layoutEngine.newChild(this, settings.layoutData);
+                }
+            }
+
             // Dirty layout and positioning
             this._parentLayoutDirty();
             this._positioningDirty();
+
+            // Add in the PCM
+            if (settings.levelCollision || settings.deepCollision) {
+                this._actorInfo = this.owner._primitiveCollisionManager._addActor(this, settings.deepCollision === true);
+                this._setFlags(SmartPropertyPrim.flagCollisionActor);
+            } else {
+                this._actorInfo = null;
+            }
+
+        }
+
+        /**
+         * Return the ChangedDictionary observable of the StringDictionary containing the primitives intersecting with this one
+         */
+        public get intersectWithObservable(): Observable<DictionaryChanged<ActorInfoBase>> {
+            if (!this._actorInfo) {
+                return null;
+            }
+            return this._actorInfo.intersectWith.dictionaryChanged;
+        }
+
+        /**
+         * Return the ObservableStringDictionary containing all the primitives intersecting with this one.
+         * The key is the primitive uid, the value is the ActorInfo object
+         * @returns {} 
+         */
+        public get intersectWith(): ObservableStringDictionary<ActorInfoBase> {
+            if (!this._actorInfo) {
+                return null;
+            }
+            return this._actorInfo.intersectWith;
         }
 
         public get actionManager(): ActionManager {
@@ -1824,7 +1871,11 @@
          * DO NOT INVOKE for internal purpose only
          */
         public set actualPosition(val: Vector2) {
-            this._actualPosition = val;
+            if (!this._actualPosition) {
+                this._actualPosition = val.clone();
+            } else {
+                this._actualPosition.copyFrom(val);
+            }
         }
 
         /**
@@ -1871,7 +1922,11 @@
             if (!this._checkPositionChange()) {
                 return;
             }
-            this._position = value;
+            if (!this._position) {
+                this._position = value.clone();
+            } else {
+                this._position.copyFrom(value);
+            }
             this._triggerPropertyChanged(Prim2DBase.actualPositionProperty, value);
         }
 
@@ -1962,7 +2017,6 @@
                 Prim2DBase.boundinbBoxReentrency = false;
 
                 return this._boundingSize;
-
             }
             return this._size;
         }
@@ -1972,7 +2026,11 @@
         }
 
         protected internalSetSize(value: Size) {
-            this._size = value;
+            if (!this._size) {
+                this._size = (value != null) ? value.clone() : null;
+            } else {
+                this._size.copyFrom(value);
+            }
         }
 
         /**
@@ -2074,7 +2132,11 @@
                 return;
             }
 
-            this._actualSize = value;
+            if (!this._actualSize) {
+                this._actualSize = value.clone();
+            } else {
+                this._actualSize.copyFrom(value);
+            }
         }
 
         /**
@@ -2127,7 +2189,11 @@
                 return;
             }
 
-            this._minSize = value;
+            if (!this._minSize) {
+                this._minSize = value.clone();
+            } else {
+                this._minSize.copyFrom(value);
+            }
             this._parentLayoutDirty();
         }
 
@@ -2145,7 +2211,11 @@
                 return;
             }
 
-            this._maxSize = value;
+            if (!this._maxSize) {
+                this._maxSize = value.clone();
+            } else {
+                this._maxSize.copyFrom(value);
+            }
             this._parentLayoutDirty();
         }
 
@@ -2164,7 +2234,11 @@
         }
 
         public set origin(value: Vector2) {
-            this._origin = value;
+            if (!this._origin) {
+                this._origin = value.clone();
+            } else {
+                this._origin.copyFrom(value);
+            }
         }
 
         @dynamicLevelProperty(SmartPropertyPrim.SMARTPROPERTYPRIM_PROPCOUNT + 15, pi => Prim2DBase.levelVisibleProperty = pi)
@@ -2441,7 +2515,7 @@
             if (this.parent) {
                 this.parent._setFlags(SmartPropertyPrim.flagLayoutBoundingInfoDirty | SmartPropertyPrim.flagGlobalTransformDirty);
             }
-            this._layoutArea = val;
+            this._layoutArea.copyFrom(val);
         }
 
         /**
@@ -2463,7 +2537,11 @@
                 this.parent._setFlags(SmartPropertyPrim.flagLayoutBoundingInfoDirty | SmartPropertyPrim.flagGlobalTransformDirty);
             }
             this._positioningDirty();
-            this._layoutAreaPos = val;
+            if (!this._layoutAreaPos) {
+                this._layoutAreaPos = val.clone();
+            } else {
+                this._layoutAreaPos.copyFrom(val);
+            }
         }
 
         /**
@@ -2509,7 +2587,9 @@
          * Get the global transformation matrix of the primitive
          */
         public get globalTransform(): Matrix {
-            this._updateLocalTransform();
+            if (this._globalTransformProcessStep !== this.owner._globalTransformProcessStep) {
+                this.updateCachedStates(false);
+            }
             return this._globalTransform;
         }
 
@@ -2547,7 +2627,9 @@
             return this._localTransform;
         }
 
+        private static _bMinMax = Vector4.Zero();
         private static _bMax = Vector2.Zero();
+        private static _bSize = Size.Zero();
         private static _tpsBB = new BoundingInfo2D();
         /**
          * Get the boundingInfo associated to the primitive and its children.
@@ -2558,10 +2640,15 @@
                 if (this.owner) {
                     this.owner.boundingInfoRecomputeCounter.addCount(1, false);
                 }
-                if (this.isSizedByContent) {
+                let sizedByContent = this.isSizedByContent;
+
+                if (sizedByContent) {
                     this._boundingInfo.clear();
                 } else {
                     this._boundingInfo.copyFrom(this.levelBoundingInfo);
+                    if (this._isFlagSet(SmartPropertyPrim.flagLevelBoundingInfoDirty)) {
+                        return this._boundingInfo;
+                    }
                 }
                 let bi = this._boundingInfo;
 
@@ -2572,10 +2659,28 @@
                     bi.unionToRef(tps, bi);
                 }
 
-                this._boundingInfo.maxToRef(Prim2DBase._bMax);
+                // If the size is determined by the content we have to update the contentArea
+                //  and compute the size considering the padding (if any)
+                if (sizedByContent) {
+                    bi.maxToRef(Prim2DBase._bMax);
+                    this._contentArea.width = Prim2DBase._bMax.x;
+                    this._contentArea.height = Prim2DBase._bMax.y;
+
+                    if (this._hasPadding) {
+                        let padding = this.padding;
+                        let mm = Prim2DBase._bMinMax;
+                        bi.minMaxToRef(mm);
+                        mm.z += padding.leftPixels + padding.rightPixels;
+                        mm.w += padding.bottomPixels + padding.topPixels;
+                        this._paddingOffset.copyFromFloats(padding.leftPixels, padding.bottomPixels, padding.rightPixels, padding.topPixels);
+                        BoundingInfo2D.CreateFromMinMaxToRef(mm.x, mm.z, mm.y, mm.w, bi);
+                    }
+                }
+
+                this._boundingInfo.sizeToRef(Prim2DBase._bSize);
                 this._boundingSize.copyFromFloats(
-                    (!this._size || this._size.width == null) ? Math.ceil(Prim2DBase._bMax.x) : this._size.width,
-                    (!this._size || this._size.height == null) ? Math.ceil(Prim2DBase._bMax.y) : this._size.height);
+                    (!this._size || this._size.width == null) ? Math.ceil(Prim2DBase._bSize.width) : this._size.width,
+                    (!this._size || this._size.height == null) ? Math.ceil(Prim2DBase._bSize.height) : this._size.height);
 
                 this._clearFlags(SmartPropertyPrim.flagBoundingInfoDirty);
             }
@@ -2944,12 +3049,12 @@
             return this.owner._releasePointerCapture(pointerId, this);
         }
 
+        private static _bypassGroup2DExclusion = false;
+
         /**
          * Make an intersection test with the primitive, all inputs/outputs are stored in the IntersectInfo2D class, see its documentation for more information.
          * @param intersectInfo contains the settings of the intersection to perform, to setup before calling this method as well as the result, available after a call to this method.
          */
-        private static _bypassGroup2DExclusion = false;
-
         public intersect(intersectInfo: IntersectInfo2D): boolean {
             if (!intersectInfo) {
                 return false;
@@ -3049,6 +3154,38 @@
             return intersectInfo.isIntersected;
         }
 
+        public intersectOtherPrim(other: Prim2DBase): boolean {
+            let setA = this.triList;
+            let setB = other.triList;
+
+            return Tri2DArray.doesIntersect(setA, setB, other.globalTransform.multiply(this.globalTransform.clone().invert()));
+        }
+
+        public get triList(): Tri2DArray {
+            if (this._primTriArrayDirty) {
+                this.updateTriArray();
+                this._primTriArrayDirty = false;
+            }
+            return this._primTriArray;
+        }
+
+        // This is the worst implementation, if the top level primitive doesn't override this method we will just store a quad that defines the bounding rect of the prim
+        protected updateTriArray() {
+            if (this._primTriArray == null) {
+                this._primTriArray = new Tri2DArray(2);
+            } else {
+                this._primTriArray.clear(2);
+            }
+
+            let size = this.actualSize;
+            let lb = new Vector2(0, 0);
+            let rt = new Vector2(size.width, size.height);
+            let lt = new Vector2(0, size.height);
+            let rb = new Vector2(size.width, 0);
+            this._primTriArray.storeTriangle(0, lb, lt, rt);
+            this._primTriArray.storeTriangle(1, lb, rt, rb);
+        }
+
         /**
          * Move a child object into a new position regarding its siblings to change its rendering order.
          * You can also use the shortcut methods to move top/bottom: moveChildToTop, moveChildToBottom, moveToTop, moveToBottom.
@@ -3131,6 +3268,11 @@
                 return false;
             }
 
+            if (this._isFlagSet(SmartPropertyPrim.flagCollisionActor)) {
+                this.owner._primitiveCollisionManager._removeActor(this);
+                this._actorInfo = null;
+            }
+
             if (this._pointerEventObservable) {
                 this._pointerEventObservable.clear();
                 this._pointerEventObservable = null;
@@ -3183,7 +3325,7 @@
         }
 
         public _needPrepare(): boolean {
-            return this._areSomeFlagsSet(SmartPropertyPrim.flagVisibilityChanged | SmartPropertyPrim.flagModelDirty | SmartPropertyPrim.flagNeedRefresh) || (this._instanceDirtyFlags !== 0) || (this._globalTransformProcessStep !== this._globalTransformStep);
+            return this._areSomeFlagsSet(SmartPropertyPrim.flagVisibilityChanged | SmartPropertyPrim.flagModelDirty | SmartPropertyPrim.flagModelUpdate | SmartPropertyPrim.flagNeedRefresh) || (this._instanceDirtyFlags !== 0) || (this._globalTransformProcessStep !== this._globalTransformStep);
         }
 
         public _prepareRender(context: PrepareRender2DContext) {
@@ -3431,6 +3573,9 @@
 
                     this._invGlobalTransform = Matrix.Invert(this._globalTransform);
 
+                    this._levelBoundingInfo.dirtyWorldAABB();
+                    this._boundingInfo.dirtyWorldAABB();
+
                     this._globalTransformStep = this.owner._globalTransformProcessStep + 1;
                     this._parentTransformStep = this._parent ? this._parent._globalTransformStep : 0;
                     this._clearFlags(SmartPropertyPrim.flagGlobalTransformDirty);
@@ -3475,22 +3620,16 @@
 
             // Apply margin
             if (this._hasMargin) {
-                this.margin.computeWithAlignment(this.layoutArea, this.size || this.actualSize, this.marginAlignment, this._marginOffset, Prim2DBase._size);
-                this.actualSize = Prim2DBase._size.clone();
+                let contentSize = this.size || this.actualSize;
+                this.margin.computeWithAlignment(this.layoutArea, contentSize, this.marginAlignment, this.actualScale, this._marginOffset, Prim2DBase._size);
             }
 
             if (this._hasPadding) {
                 // Two cases from here: the size of the Primitive is Auto, its content can't be shrink, so we resize the primitive itself
                 if (isSizeAuto) {
-                    let content = this.size.clone();
-                    this._getActualSizeFromContentToRef(content, Prim2DBase._icArea);
-                    this.padding.enlarge(Prim2DBase._icArea, this._paddingOffset, Prim2DBase._size);
-                    this._contentArea.copyFrom(content);
-                    this.actualSize = Prim2DBase._size.clone();
-
                     // Changing the padding has resize the prim, which forces us to recompute margin again
                     if (this._hasMargin) {
-                        this.margin.computeWithAlignment(this.layoutArea, Prim2DBase._size, this.marginAlignment, this._marginOffset, Prim2DBase._size);
+                        this.margin.computeWithAlignment(this.layoutArea, Prim2DBase._size, this.marginAlignment, this.actualScale, this._marginOffset, Prim2DBase._size);
                     }
 
                 } else {
@@ -3533,6 +3672,23 @@
          * Children of this primitive will be positioned relative to the bottom/left corner of this area.
          */
         public get contentArea(): Size {
+            if (!this._size || this._size.width == null || this._size.height == null) {
+
+                if (Prim2DBase.boundinbBoxReentrency) {
+                    return Prim2DBase.nullSize;
+                }
+
+                if (!this._isFlagSet(SmartPropertyPrim.flagBoundingInfoDirty)) {
+                    return this._contentArea;
+                }
+
+                Prim2DBase.boundinbBoxReentrency = true;
+                let b = this.boundingInfo;
+                Prim2DBase.boundinbBoxReentrency = false;
+
+                return this._contentArea;
+            } else
+
             // Check for positioning update
             if (this._isFlagSet(SmartPropertyPrim.flagPositioningDirty)) {
                 this._updatePositioning();
@@ -3805,6 +3961,7 @@
         private _actualScale : Vector2;
         private _displayDebugAreas: boolean;
         private _debugAreaGroup: Group2D;
+        private _actorInfo: ActorInfoBase;
 
         // Stores the step of the parent for which the current global transform was computed
         // If the parent has a new step, it means this prim's global transform must be updated
@@ -3819,6 +3976,10 @@
         protected _localTransform: Matrix;
         protected _globalTransform: Matrix;
         protected _invGlobalTransform: Matrix;
+
+        // Intersection related data
+        protected _primTriArrayDirty: boolean;
+        protected _primTriArray: Tri2DArray;
     }
 
 }

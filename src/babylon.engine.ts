@@ -618,12 +618,12 @@
             // Checks if some of the format renders first to allow the use of webgl inspector.
             this._caps.colorBufferFloat = this._webGLVersion > 1 && this._gl.getExtension('EXT_color_buffer_float')
 
-            this._caps.textureFloat = this._webGLVersion > 1 || (this._gl.getExtension('OES_texture_float') !== null);
-            this._caps.textureFloatLinearFiltering = this._gl.getExtension('OES_texture_float_linear');
+            this._caps.textureFloat = this._webGLVersion > 1 || this._gl.getExtension('OES_texture_float');
+            this._caps.textureFloatLinearFiltering = this._caps.textureFloat && this._gl.getExtension('OES_texture_float_linear');
             this._caps.textureFloatRender = this._caps.textureFloat && this._canRenderToFloatFramebuffer();            
 
-            this._caps.textureHalfFloat = this._webGLVersion > 1 || (this._gl.getExtension('OES_texture_half_float') !== null);
-            this._caps.textureHalfFloatLinearFiltering = this._webGLVersion > 1 || this._gl.getExtension('OES_texture_half_float_linear');
+            this._caps.textureHalfFloat = this._webGLVersion > 1 || this._gl.getExtension('OES_texture_half_float');
+            this._caps.textureHalfFloatLinearFiltering = this._webGLVersion > 1 || (this._caps.textureHalfFloat && this._gl.getExtension('OES_texture_half_float_linear'));
             this._caps.textureHalfFloatRender = this._caps.textureHalfFloat && this._canRenderToHalfFloatFramebuffer();
             
             this._caps.textureLOD = this._webGLVersion > 1 || this._gl.getExtension('EXT_shader_texture_lod');
@@ -1308,7 +1308,7 @@
             this._cachedIndexBuffer = null;
         }
 
-        public createIndexBuffer(indices: number[] | Int32Array): WebGLBuffer {
+        public createIndexBuffer(indices: IndicesArray): WebGLBuffer {
             var vbo = this._gl.createBuffer();
             this.bindIndexBuffer(vbo);
 
@@ -1316,18 +1316,29 @@
             var arrayBuffer;
             var need32Bits = false;
 
-            if (this._caps.uintIndices) {
-
-                for (var index = 0; index < indices.length; index++) {
-                    if (indices[index] > 65535) {
-                        need32Bits = true;
-                        break;
-                    }
-                }
-
-                arrayBuffer = need32Bits ? new Uint32Array(indices) : new Uint16Array(indices);
+            if (indices instanceof Uint16Array) {
+                arrayBuffer = indices;
             } else {
-                arrayBuffer = new Uint16Array(indices);
+                //check 32 bit support
+                if (this._caps.uintIndices) {
+                    if (indices instanceof Uint32Array) {
+                        arrayBuffer = indices;
+                        need32Bits = true;
+                    } else {
+                        //number[] or Int32Array, check if 32 bit is necessary
+                        for (var index = 0; index < indices.length; index++) {
+                            if (indices[index] > 65535) {
+                                need32Bits = true;
+                                break;
+                            }
+                        }
+
+                        arrayBuffer = need32Bits ? new Uint32Array(indices) : new Uint16Array(indices);
+                    }
+                } else {
+                    //no 32 bit support, force conversion to 16 bit (values greater 16 bit are lost)
+                    arrayBuffer = new Uint16Array(indices);
+                }
             }
 
             this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, arrayBuffer, this._gl.STATIC_DRAW);
@@ -1385,6 +1396,9 @@
         }
 
         private _bindIndexBufferWithCache(indexBuffer: WebGLBuffer): void {            
+            if (indexBuffer == null) {
+                return;
+            }
             if (this._cachedIndexBuffer !== indexBuffer) {
                 this._cachedIndexBuffer = indexBuffer;
                 this.bindIndexBuffer(indexBuffer);
@@ -2020,29 +2034,6 @@
             this.bindArrayBuffer(null);
         }
 
-        public setSamplingMode(texture: WebGLTexture, samplingMode: number): void {
-            var gl = this._gl;
-
-            this._bindTextureDirectly(gl.TEXTURE_2D, texture);
-
-            var magFilter = gl.NEAREST;
-            var minFilter = gl.NEAREST;
-
-            if (samplingMode === Texture.BILINEAR_SAMPLINGMODE) {
-                magFilter = gl.LINEAR;
-                minFilter = gl.LINEAR;
-            } else if (samplingMode === Texture.TRILINEAR_SAMPLINGMODE) {
-                magFilter = gl.LINEAR;
-                minFilter = gl.LINEAR_MIPMAP_LINEAR;
-            }
-
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
-
-            this._bindTextureDirectly(gl.TEXTURE_2D, null);
-
-            texture.samplingMode = samplingMode;
-        }
         /**
          * Set the compressed texture format to use, based on the formats you have, and the formats
          * supported by the hardware / browser.
@@ -2312,7 +2303,7 @@
 
         public updateTextureSamplingMode(samplingMode: number, texture: WebGLTexture): void {
             var filters = getSamplingParameters(samplingMode, texture.generateMipMaps, this._gl);
-
+ 
             if (texture.isCube) {
                 this._bindTextureDirectly(this._gl.TEXTURE_CUBE_MAP, texture);
 
@@ -2326,6 +2317,8 @@
                 this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MIN_FILTER, filters.min);
                 this._bindTextureDirectly(this._gl.TEXTURE_2D, null);
             }
+
+             texture.samplingMode = samplingMode;
         }
 
         public updateDynamicTexture(texture: WebGLTexture, canvas: HTMLCanvasElement, invertY: boolean, premulAlpha: boolean = false): void {
@@ -2745,6 +2738,11 @@
             }
 
             var internalFormat = this._getInternalFormat(format);
+            var needConversion = false;
+            if (internalFormat === gl.RGB) {
+                internalFormat = gl.RGBA;
+                needConversion = true;
+            }
             var internalSizedFomat = this._getRGBABufferInternalSizedFormat(type);
 
             var width = size;
@@ -2773,74 +2771,50 @@
                 this._bindTextureDirectly(gl.TEXTURE_CUBE_MAP, texture);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 
-                if (!noMipmap && isPot) {
-                    if (mipmmapGenerator) {
+                if (mipmmapGenerator) {
 
-                        var arrayTemp: ArrayBufferView[] = [];
-                        // Data are known to be in +X +Y +Z -X -Y -Z
-                        // mipmmapGenerator data is expected to be order in +X -X +Y -Y +Z -Z
-                        arrayTemp.push(rgbeDataArrays[0]); // +X
-                        arrayTemp.push(rgbeDataArrays[3]); // -X
-                        arrayTemp.push(rgbeDataArrays[1]); // +Y
-                        arrayTemp.push(rgbeDataArrays[4]); // -Y
-                        arrayTemp.push(rgbeDataArrays[2]); // +Z
-                        arrayTemp.push(rgbeDataArrays[5]); // -Z
+                    var arrayTemp: ArrayBufferView[] = [];
+                    // Data are known to be in +X +Y +Z -X -Y -Z
+                    // mipmmapGenerator data is expected to be order in +X -X +Y -Y +Z -Z
+                    arrayTemp.push(rgbeDataArrays[0]); // +X
+                    arrayTemp.push(rgbeDataArrays[3]); // -X
+                    arrayTemp.push(rgbeDataArrays[1]); // +Y
+                    arrayTemp.push(rgbeDataArrays[4]); // -Y
+                    arrayTemp.push(rgbeDataArrays[2]); // +Z
+                    arrayTemp.push(rgbeDataArrays[5]); // -Z
 
-                        var mipData = mipmmapGenerator(arrayTemp);
-                        for (var level = 0; level < mipData.length; level++) {
-                            var mipSize = width >> level;
+                    var mipData = mipmmapGenerator(arrayTemp);
+                    // mipData is order in +X -X +Y -Y +Z -Z
+                    var mipFaces = [0, 2, 4, 1, 3, 5];
+                    for (var level = 0; level < mipData.length; level++) {
+                        var mipSize = width >> level;
 
-                            // mipData is order in +X -X +Y -Y +Z -Z
-                            gl.texImage2D(facesIndex[0], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][0]);
-                            gl.texImage2D(facesIndex[1], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][2]);
-                            gl.texImage2D(facesIndex[2], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][4]);
-                            gl.texImage2D(facesIndex[3], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][1]);
-                            gl.texImage2D(facesIndex[4], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][3]);
-                            gl.texImage2D(facesIndex[5], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipData[level][5]);
-                        }
-                    }
-                    else {
-                        if (internalFormat === gl.RGB) {
-                            internalFormat = gl.RGBA;
-
-                             // Data are known to be in +X +Y +Z -X -Y -Z
-                            for (let index = 0; index < facesIndex.length; index++) {
-                                let faceData = <Float32Array>rgbeDataArrays[index];
-
-                                // Create a new RGBA Face.
-                                let newFaceData = new Float32Array(width * height * 4);
-                                for (let x = 0; x < width; x++) {
-                                    for (let y = 0; y < height; y++) {
-                                        let index = (y * width + x) * 3;
-                                        let newIndex = (y * width + x) * 4;
-
-                                        // Map Old Value to new value.
-                                        newFaceData[newIndex + 0] = faceData[index + 0];
-                                        newFaceData[newIndex + 1] = faceData[index + 1];
-                                        newFaceData[newIndex + 2] = faceData[index + 2];
-
-                                        // Add fully opaque alpha channel.
-                                        newFaceData[newIndex + 3] = 1;
-                                    }
-                                }
-
-                                // Reupload the face.
-                                gl.texImage2D(facesIndex[index], 0, internalSizedFomat, width, height, 0, internalFormat, textureType, newFaceData);
+                        for (let mipIndex in mipFaces) {
+                            let mipFaceData = mipData[level][mipFaces[mipIndex]];
+                            if (needConversion) {
+                                mipFaceData = this._convertRGBtoRGBATextureData(mipFaceData, mipSize, mipSize, type);
                             }
+                            gl.texImage2D(facesIndex[mipIndex], level, internalSizedFomat, mipSize, mipSize, 0, internalFormat, textureType, mipFaceData);
                         }
-                        else {
-                            // Data are known to be in +X +Y +Z -X -Y -Z
-                            for (let index = 0; index < facesIndex.length; index++) {
-                                let faceData = rgbeDataArrays[index];
-                                gl.texImage2D(facesIndex[index], 0, internalSizedFomat, width, height, 0, internalFormat, textureType, faceData);
-                            }
-                        }
-
-                        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
                     }
                 }
-                else {
-                    noMipmap = true;
+                else {                    
+                    // Data are known to be in +X +Y +Z -X -Y -Z
+                    for (let index = 0; index < facesIndex.length; index++) {
+                        let faceData = rgbeDataArrays[index];
+                        if (needConversion) {
+                            faceData = this._convertRGBtoRGBATextureData(faceData, width, height, type);
+                        }
+
+                        gl.texImage2D(facesIndex[index], 0, internalSizedFomat, width, height, 0, internalFormat, textureType, faceData);
+                    }
+
+                    if (!noMipmap && isPot) {
+                        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+                    }
+                    else {
+                        noMipmap = true;
+                    }
                 }
 
                 if (textureType === gl.FLOAT && !this._caps.textureFloatLinearFiltering) {
@@ -2872,6 +2846,35 @@
 
             return texture;
         };
+
+        private _convertRGBtoRGBATextureData(rgbData: ArrayBufferView, width: number, height: number, textureType: number): ArrayBufferView {
+            // Create new RGBA data container.
+            var rgbaData: ArrayBufferView;
+            if (textureType === Engine.TEXTURETYPE_FLOAT) {
+                rgbaData = new Float32Array(width * height * 4);
+            }
+            else {
+                rgbaData = new Uint32Array(width * height * 4);
+            }
+
+            // Convert each pixel.
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let index = (y * width + x) * 3;
+                    let newIndex = (y * width + x) * 4;
+
+                    // Map Old Value to new value.
+                    rgbaData[newIndex + 0] = rgbData[index + 0];
+                    rgbaData[newIndex + 1] = rgbData[index + 1];
+                    rgbaData[newIndex + 2] = rgbData[index + 2];
+
+                    // Add fully opaque alpha channel.
+                    rgbaData[newIndex + 3] = 1;
+                }
+            }
+
+            return rgbaData;
+        }
 
         public _releaseTexture(texture: WebGLTexture): void {
             var gl = this._gl;
@@ -3144,6 +3147,7 @@
                 for (var i = 0; i < this._caps.maxVertexAttribs; i++) {
                     this._gl.disableVertexAttribArray(i);
                     this._vertexAttribArraysEnabled[i] = false;
+                    this._currentBufferPointers[i] = null;
                 }
                 return;
             }
@@ -3155,6 +3159,7 @@
 
                 this._gl.disableVertexAttribArray(i);
                 this._vertexAttribArraysEnabled[i] = false;
+                this._currentBufferPointers[i] = null;
             }
         }
 

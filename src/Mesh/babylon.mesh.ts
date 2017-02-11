@@ -121,47 +121,6 @@
         private _sourcePositions: Float32Array; // Will be used to save original positions when using software skinning
         private _sourceNormals: Float32Array;   // Will be used to save original normals when using software skinning
 
-        private _facetPositions: Vector3[];             // facet local positions
-        private _facetNormals: Vector3[];               // facet local normals
-        private _facetPartitioning: number[][];           // partitioning array of facet index arrays
-        private _facetNb: number = 0;                   // facet number
-        private _partitioningSubdivisions: number = 10; // number of subdivisions per axis in the partioning space  
-        private _partitioningBBoxRatio: number = 1.01;  // the partioning array space is by default 1% bigger than the bounding box
-        private _facetDataEnabled: boolean = false;     // is the facet data feature enabled on this mesh ?
-        private _facetParameters: any;                  // keep a reference to the object parameters to avoid memory re-allocation
-
-        /**
-         * Read-only : the number of facets in the mesh
-         */
-        public get facetNb(): number {
-            return this._facetNb;
-        }
-        /**
-         * The number of subdivisions per axis in the partioning space
-         */
-        public get partitioningSubdivisions(): number {
-            return this._partitioningSubdivisions;
-        }
-        public set partitioningSubdivisions(nb: number) {
-            this._partitioningSubdivisions = nb;
-        } 
-        /**
-         * The ratio to apply to the bouding box size to set to the partioning space.  
-         * Ex : 1.01 (default) the partioning space is 1% bigger than the bounding box.
-         */
-        public get partitioningBBoxRatio(): number {
-            return this._partitioningBBoxRatio;
-        }
-        public set partitioningBBoxRatio(ratio: number) {
-            this._partitioningBBoxRatio = ratio;
-        }
-        /**
-         * Read-only : is the feature facetData enabled ?
-         */
-        public get isFacetDataEnabled(): boolean {
-            return this._facetDataEnabled;
-        }
-
         // Will be used to save a source mesh reference, If any
         private _source: BABYLON.Mesh = null; 
         public get source(): BABYLON.Mesh {
@@ -518,11 +477,11 @@
         }
 
         /**
-         * Returns an array of integers or a Int32Array populated with the mesh indices.  
+         * Returns an array of integers or a typed array (Int32Array, Uint32Array, Uint16Array) populated with the mesh indices.  
          * If the parameter `copyWhenShared` is true (default false) and and if the mesh geometry is shared among some other meshes, the returned array is a copy of the internal one.
          * Returns an empty array if the mesh has no geometry.
          */
-        public getIndices(copyWhenShared?: boolean): number[] | Int32Array {
+        public getIndices(copyWhenShared?: boolean): IndicesArray {
 
             if (!this._geometry) {
                 return [];
@@ -823,11 +782,11 @@
 
         /**
          * Sets the mesh indices.  
-         * Expects an array populated with integers or a Int32Array.
+         * Expects an array populated with integers or a typed array (Int32Array, Uint32Array, Uint16Array).
          * If the mesh has no geometry, a new Geometry object is created and set to the mesh. 
          * This method creates a new index buffer each call.
          */
-        public setIndices(indices: number[] | Int32Array, totalVertices?: number): void {
+        public setIndices(indices: IndicesArray, totalVertices?: number): void {
             if (!this._geometry) {
                 var vertexData = new VertexData();
                 vertexData.indices = indices;
@@ -1417,7 +1376,6 @@
                     highlightLayer.removeExcludedMesh(this);
                 }
             }
-
             super.dispose(doNotRecurse);
         }
 
@@ -1429,8 +1387,10 @@
          * The parameter `url` is a string, the URL from the image file is to be downloaded.  
          * The parameters `minHeight` and `maxHeight` are the lower and upper limits of the displacement.
          * The parameter `onSuccess` is an optional Javascript function to be called just after the mesh is modified. It is passed the modified mesh and must return nothing.
+         * The parameter `uvOffset` is an optional vector2 used to offset UV.
+         * The parameter `uvScale` is an optional vector2 used to scale UV.
          */
-        public applyDisplacementMap(url: string, minHeight: number, maxHeight: number, onSuccess?: (mesh: Mesh) => void): void {
+        public applyDisplacementMap(url: string, minHeight: number, maxHeight: number, onSuccess?: (mesh: Mesh) => void, uvOffset?: Vector2, uvScale?: Vector2): void {
             var scene = this.getScene();
 
             var onload = img => {
@@ -1448,7 +1408,7 @@
                 //Cast is due to wrong definition in lib.d.ts from ts 1.3 - https://github.com/Microsoft/TypeScript/issues/949
                 var buffer = <Uint8Array>(<any>context.getImageData(0, 0, heightMapWidth, heightMapHeight).data);
 
-                this.applyDisplacementMapFromBuffer(buffer, heightMapWidth, heightMapHeight, minHeight, maxHeight);
+                this.applyDisplacementMapFromBuffer(buffer, heightMapWidth, heightMapHeight, minHeight, maxHeight, uvOffset, uvScale);
                 //execute success callback, if set
                 if (onSuccess) {
                     onSuccess(this);
@@ -1466,8 +1426,10 @@
          * The parameter `buffer` is a `Uint8Array` buffer containing series of `Uint8` lower than 255, the red, green, blue and alpha values of each successive pixel.
          * The parameters `heightMapWidth` and `heightMapHeight` are positive integers to set the width and height of the buffer image.     
          * The parameters `minHeight` and `maxHeight` are the lower and upper limits of the displacement.
+         * The parameter `uvOffset` is an optional vector2 used to offset UV.
+         * The parameter `uvScale` is an optional vector2 used to scale UV.
          */
-        public applyDisplacementMapFromBuffer(buffer: Uint8Array, heightMapWidth: number, heightMapHeight: number, minHeight: number, maxHeight: number): void {
+        public applyDisplacementMapFromBuffer(buffer: Uint8Array, heightMapWidth: number, heightMapHeight: number, minHeight: number, maxHeight: number, uvOffset?: Vector2, uvScale?: Vector2): void {
             if (!this.isVerticesDataPresent(VertexBuffer.PositionKind)
                 || !this.isVerticesDataPresent(VertexBuffer.NormalKind)
                 || !this.isVerticesDataPresent(VertexBuffer.UVKind)) {
@@ -1482,14 +1444,17 @@
             var normal = Vector3.Zero();
             var uv = Vector2.Zero();
 
+            uvOffset = uvOffset || Vector2.Zero();
+            uvScale = uvScale || new Vector2(1, 1);
+
             for (var index = 0; index < positions.length; index += 3) {
                 Vector3.FromArrayToRef(positions, index, position);
                 Vector3.FromArrayToRef(normals, index, normal);
                 Vector2.FromArrayToRef(uvs, (index / 3) * 2, uv);
 
                 // Compute height
-                var u = ((Math.abs(uv.x) * heightMapWidth) % heightMapWidth) | 0;
-                var v = ((Math.abs(uv.y) * heightMapHeight) % heightMapHeight) | 0;
+                var u = ((Math.abs(uv.x * uvScale.x + uvOffset.x) * heightMapWidth) % heightMapWidth) | 0;
+                var v = ((Math.abs(uv.y * uvScale.y + uvOffset.y) * heightMapHeight) % heightMapHeight) | 0;
 
                 var pos = (u + v * heightMapWidth) * 4;
                 var r = buffer[pos] / 255.0;
@@ -1793,243 +1758,6 @@
                     successCallback(this);
                 }
             });
-        }
-
-        // Facet data
-        /** 
-         *  Initialize the facet data arrays : facetNormals, facetPositions and facetPartitioning
-         */
-        private _initFacetData(): Mesh {
-            if (!this._facetNormals) {
-                this._facetNormals = new Array<Vector3>();
-            }
-            if (!this._facetPositions) {
-                this._facetPositions = new Array<Vector3>();
-            }
-            if (!this._facetPartitioning) {
-                this._facetPartitioning = new Array<number[]>();
-            }
-            this._facetNb = this.getIndices().length / 3;
-            this._partitioningSubdivisions = (this._partitioningSubdivisions) ? this._partitioningSubdivisions : 10;   // default nb of partitioning subdivisions = 10
-            this._partitioningBBoxRatio = (this._partitioningBBoxRatio) ? this._partitioningBBoxRatio : 1.01;          // default ratio 1.01 = the partitioning is 1% bigger than the bounding box
-            for (var f = 0; f < this._facetNb; f++) {
-                this._facetNormals[f] = Vector3.Zero();
-                this._facetPositions[f] = Vector3.Zero();
-            }
-            this._facetDataEnabled = true;           
-            return this;
-        }
-
-        /**
-         * Updates the mesh facetData arrays and the internal partitioning when the mesh is morphed or updated.  
-         * This method can be called within the render loop.  
-         * You don't need to call this method by yourself in the render loop when you update/morph a mesh with the methods CreateXXX() as they automatically manage this computation.  
-         */
-        public updateFacetData(): Mesh {
-            if (!this._facetDataEnabled) {
-                this._initFacetData();
-            }
-            var positions = this.getVerticesData(VertexBuffer.PositionKind);
-            var indices = this.getIndices();
-            var normals = this.getVerticesData(VertexBuffer.NormalKind);
-            var options = this.getFacetDataParameters();
-            VertexData.ComputeNormals(positions, indices, normals, options);
-            return this;
-        }
-        /**
-         * Returns the facetLocalNormals array.  
-         * The normals are expressed in the mesh local space.  
-         */
-        public getFacetLocalNormals(): Vector3[] {
-            if (!this._facetNormals) {
-                this.updateFacetData();
-            }
-            return this._facetNormals;
-        }
-        /**
-         * Returns the facetLocalPositions array.  
-         * The facet positions are expressed in the mesh local space.  
-         */
-        public getFacetLocalPositions(): Vector3[] {
-            if (!this._facetPositions) {
-                this.updateFacetData();
-            }
-            return this._facetPositions;           
-        }
-        /**
-         * Returns the facetLocalPartioning array
-         */
-        public getFacetLocalPartitioning(): number[][] {
-            if (!this._facetPartitioning) {
-                this.updateFacetData();
-            }
-            return this._facetPartitioning;
-        }
-        /**
-         * Returns the i-th facet position in the world system.  
-         * This method allocates a new Vector3 per call.  
-         */
-        public getFacetPosition(i: number): Vector3 {
-            var pos = Vector3.Zero();
-            this.getFacetPositionToRef(i, pos);
-            return pos;
-        }
-        /**
-         * Sets the reference Vector3 with the i-th facet position in the world system.  
-         * Returns the mesh.  
-         */
-        public getFacetPositionToRef(i: number, ref: Vector3): Mesh {
-            var localPos = (this.getFacetLocalPositions())[i];
-            var world = this.getWorldMatrix();
-            Vector3.TransformCoordinatesToRef(localPos, world, ref);
-            return this;
-        }
-        /**
-         * Returns the i-th facet normal in the world system.  
-         * This method allocates a new Vector3 per call.  
-         */
-        public getFacetNormal(i: number): Vector3 {
-            var norm = Vector3.Zero();
-            this.getFacetNormalToRef(i, norm);
-            return norm;
-        }
-        /**
-         * Sets the reference Vector3 with the i-th facet normal in the world system.  
-         * Returns the mesh.  
-         */
-        public getFacetNormalToRef(i: number, ref: Vector3) {
-            var localNorm = (this.getFacetLocalNormals())[i];
-            var localPos = (this.getFacetLocalPositions())[i];
-            var world = this.getWorldMatrix();
-            var x = localPos.x + localNorm.x;
-            var y = localPos.y + localNorm.y;
-            var z = localPos.z + localNorm.z;
-            Vector3.TransformCoordinatesFromFloatsToRef(x, y, z, world, ref);
-            var worldPos = Tmp.Vector3[8];
-            this.getFacetPositionToRef(i, worldPos);
-            ref.subtractInPlace(worldPos);
-            return this;
-        }
-        /** 
-         * Returns the facets (in an array) in the same partitioning block than the one the passed coordinates are located (expressed in the mesh local system).
-         */
-        public getFacetsAtLocalCoordinates(x: number, y: number, z: number): number[] {
-            var bInfo = this.getBoundingInfo();
-            var subRatio = this._partitioningSubdivisions * this._partitioningBBoxRatio;
-            var ox = Math.floor((x - bInfo.minimum.x * this._partitioningBBoxRatio) / (bInfo.maximum.x - bInfo.minimum.x) * subRatio);
-            var oy = Math.floor((y - bInfo.minimum.y * this._partitioningBBoxRatio) / (bInfo.maximum.y - bInfo.minimum.y) * subRatio);
-            var oz = Math.floor((z - bInfo.minimum.z * this._partitioningBBoxRatio) / (bInfo.maximum.z - bInfo.minimum.z) * subRatio);
-            if (ox < 0 || ox > this._partitioningSubdivisions || oy < 0 || oy > this._partitioningSubdivisions || oz < 0 || oz > this._partitioningSubdivisions) {
-                return null;
-            }
-            return this._facetPartitioning[ox + this._partitioningSubdivisions * oy + this._partitioningSubdivisions * this._partitioningSubdivisions * oz];
-        }
-        /** 
-         * Returns the closest mesh facet index at (x,y,z) World coordinates, null if not found.  
-         * If the parameter projected (vector3) is passed, it is set as the (x,y,z) World projection on the facet.  
-         * If onlyFacing is true, only the facet "facing" (x,y,z) are returned : positive dot normal * (x,y,z).  
-         */
-        public getClosestFacetAtCoordinates(x: number, y: number, z: number, projected?: Vector3, onlyFacing?: boolean): number {
-            var world = this.getWorldMatrix();
-            var invMat = Tmp.Matrix[5];
-            world.invertToRef(invMat);
-            var invVect = Tmp.Vector3[8];
-            var closest = null;
-            Vector3.TransformCoordinatesFromFloatsToRef(x, y, z, invMat, invVect);  // transform (x,y,z) to coordinates in the mesh local space
-            closest = this.getClosestFacetAtLocalCoordinates(invVect.x, invVect.y, invVect.z, projected, onlyFacing);
-            if (projected) {
-                // tranform the local computed projected vector to world coordinates
-                Vector3.TransformCoordinatesFromFloatsToRef(projected.x, projected.y, projected.z, world, projected);
-            }
-            return closest;
-        }
-        /** 
-         * Returns the closest mesh facet index at (x,y,z) local coordinates, null if not found.   
-         * If the parameter projected (vector3) is passed, it is set as the (x,y,z) local projection on the facet.  
-         * If onlyFacing is true, only the facet "facing" (x,y,z) are returned : positive dot normal * (x,y,z).  
-         */
-        public getClosestFacetAtLocalCoordinates(x: number, y: number, z: number, projected?: Vector3, onlyFacing?: boolean) {
-            var closest = null;
-            var tmpx = 0.0;         
-            var tmpy = 0.0;
-            var tmpz = 0.0;
-            var d = 0.0;            // tmp dot facet normal * facet position
-            var t0 = 0.0;
-            var projx = 0.0;
-            var projy = 0.0;
-            var projz = 0.0;
-            // Get all the facets in the same partitioning block than (x, y, z)
-            var facetPositions = this.getFacetLocalPositions();
-            var facetNormals = this.getFacetLocalNormals();
-            var facetsInBlock = this.getFacetsAtLocalCoordinates(x, y, z);
-            if (!facetsInBlock) {
-                return null;
-            }
-            // Get the closest facet to (x, y, z)
-            var shortest = Number.MAX_VALUE;            // init distance vars
-            var tmpDistance = shortest;
-            var fib;                                    // current facet in the block
-            var norm;                                   // current facet normal
-            var p0;                                     // current facet barycenter position
-            // loop on all the facets in the current partitioning block
-            for (var idx = 0; idx < facetsInBlock.length; idx++) {
-                fib = facetsInBlock[idx];           
-                norm = facetNormals[fib];
-                p0 = facetPositions[fib];
-
-                d = (x - p0.x) * norm.x + (y - p0.y) * norm.y + (z - p0.z) * norm.z;
-                if ( !onlyFacing || (onlyFacing && d >= 0) ) {
-                    // compute (x,y,z) projection on the facet = (projx, projy, projz)
-                    d = norm.x * p0.x + norm.y * p0.y + norm.z * p0.z; 
-                    t0 = -(norm.x * x + norm.y * y + norm.z * z - d) / (norm.x * norm.x + norm.y * norm.y + norm.z * norm.z);
-                    projx = x + norm.x * t0;
-                    projy = y + norm.y * t0;
-                    projz = z + norm.z * t0;
-
-                    tmpx = projx - x;
-                    tmpy = projy - y;
-                    tmpz = projz - z;
-                    tmpDistance = tmpx * tmpx + tmpy * tmpy + tmpz * tmpz;             // compute length between (x, y, z) and its projection on the facet
-                    if (tmpDistance < shortest) {                                      // just keep the closest facet to (x, y, z)
-                        shortest = tmpDistance;
-                        closest = fib; 
-                        if (projected) {
-                            projected.x = projx;
-                            projected.y = projy;
-                            projected.z = projz;
-                        }
-                    }
-                }
-            }
-            return closest;
-        }
-        /**
-         * Returns the object "parameter" set with all the expected parameters for facetData computation by ComputeNormals()  
-         */
-        public getFacetDataParameters(): any {
-            if (!this._facetParameters) {
-                this._facetParameters = {
-                    facetNormals: this.getFacetLocalNormals(), 
-                    facetPositions: this.getFacetLocalPositions(),
-                    facetPartitioning: this.getFacetLocalPartitioning(),
-                    bInfo: this.getBoundingInfo(),
-                    partitioningSubdivisions: this.partitioningSubdivisions,
-                    ratio: this.partitioningBBoxRatio
-                };
-            }
-            return this._facetParameters;
-        }
-        /** 
-         * Disables the feature FacetData and frees the related memory.  
-         * Returns the mesh.  
-         */
-        public disableFacetData(): Mesh {
-            this._facetDataEnabled = false;
-            this._facetPositions = null;
-            this._facetNormals = null;
-            this._facetPartitioning = null;
-            this._facetParameters = null;
-            return this;
         }
 
         // Statics

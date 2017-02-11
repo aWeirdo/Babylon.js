@@ -414,7 +414,7 @@
             this._context.textBaseline = "top";
 
             var res = this.getFontHeight(font);
-            this._lineHeightSuper = res.height+4;
+            this._lineHeightSuper = res.height; //+4;
             this._lineHeight = this._superSample ? (Math.ceil(this._lineHeightSuper / 2)) : this._lineHeightSuper;
             this._offset = res.offset - 1;
             this._xMargin = 1 + Math.ceil(this._lineHeightSuper / 15);    // Right now this empiric formula seems to work...
@@ -712,6 +712,8 @@
         // More info here: https://videlais.com/2014/03/16/the-many-and-varied-problems-with-measuring-font-height-for-html5-canvas/
         private getFontHeight(font: string): {height: number, offset: number} {
             var fontDraw = document.createElement("canvas");
+            fontDraw.width = 600;
+            fontDraw.height = 600;
             var ctx = fontDraw.getContext('2d');
             ctx.fillRect(0, 0, fontDraw.width, fontDraw.height);
             ctx.textBaseline = 'top';
