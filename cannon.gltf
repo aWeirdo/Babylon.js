@@ -1,0 +1,201 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 62,
+      "type": "VEC3",
+      "max": [
+        0.1524999737739563,
+        0.14030000567436218,
+        0.14503613114356995
+      ],
+      "min": [
+        -0.15250003337860107,
+        -0.14030000567436218,
+        -0.14503610134124756
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 62,
+      "type": "VEC3",
+      "max": [
+        1.0,
+        1.0,
+        0.95105648040771484
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -0.95105654001235962
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 62,
+      "type": "VEC4",
+      "max": [
+        0.94930654764175415,
+        0.97125905752182007,
+        0.66085243225097656,
+        -1.0
+      ],
+      "min": [
+        -0.94946587085723877,
+        -0.97125816345214844,
+        -0.6624455451965332,
+        -1.0
+      ]
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 62,
+      "type": "VEC2",
+      "max": [
+        0.6095317006111145,
+        0.12494651228189468
+      ],
+      "min": [
+        0.374294638633728,
+        0.013053491711616516
+      ]
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "count": 300,
+      "type": "SCALAR",
+      "max": [
+        61.0
+      ],
+      "min": [
+        0.0
+      ]
+    }
+  ],
+  "asset": {
+    "generator": "Plattar UnityGLTF (2018.4.16f1)",
+    "version": "2.0"
+  },
+  "buffers": [
+    {
+      "uri": "cannon.bin",
+      "byteLength": 4176
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 744
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 744,
+      "byteLength": 744
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1488,
+      "byteLength": 992
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2480,
+      "byteLength": 496
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2976,
+      "byteLength": 1200
+    }
+  ],
+  "materials": [
+    {
+      "name": "HM_cannon_1"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TANGENT": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0
+        }
+      ],
+      "name": "projectile"
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1,
+        2
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "name": "cannon"
+    },
+    {
+      "mesh": 0,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "scale": [
+        0.85,
+        0.85,
+        0.85
+      ],
+      "translation": [
+        -0.5100001,
+        0.10625,
+        -0.306000084
+      ],
+      "name": "projectile"
+    },
+    {
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "scale": [
+        0.85,
+        0.85,
+        0.85
+      ],
+      "translation": [
+        0.0,
+        1.9,
+        -0.5
+      ],
+      "name": "projectileOrigin"
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ],
+      "name": "cannon"
+    }
+  ]
+}
