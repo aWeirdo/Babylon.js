@@ -1,23 +1,26 @@
 // Old Fashion Way for IE 11 Devs. Yes, that still exists ;-)
 
 var BABYLONDEVTOOLS;
-(function (BABYLONDEVTOOLS) {
-    
+(function(BABYLONDEVTOOLS) {
+
+    var ua = window.navigator.userAgent;
+    var isIE = ua.indexOf("Trident") > 0;
+
     var getJson = function(url, callback, errorCallback) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url);
-        xhr.onload = function () {
+        xhr.onload = function() {
             if (this.status >= 200 && this.status < 300) {
                 var data = JSON.parse(xhr.response);
                 callback(data)
             } else {
                 errorCallback({
-                status: this.status,
-                statusText: xhr.statusText
+                    status: this.status,
+                    statusText: xhr.statusText
                 });
             }
         };
-        xhr.onerror = function () {
+        xhr.onerror = function() {
             errorCallback({
                 status: this.status,
                 statusText: xhr.statusText
@@ -26,32 +29,45 @@ var BABYLONDEVTOOLS;
         xhr.send();
     }
 
-    var Loader = (function () {
+    var Loader = (function() {
         var queue;
+        var esmQueue;
         var callback;
         var dependencies;
         var useDist;
+        var testMode;
+        var workerMode;
         var min;
         var babylonJSPath;
 
+        var localDevES6FolderName;
+        var localDevUMDFolderName;
+
         function Loader() {
             queue = [];
+            esmQueue = [];
             dependencies = [];
             callback = null;
-            min = (document.location.href.toLowerCase().indexOf('dist=min') > 0);
-            useDist = (min || document.location.href.toLowerCase().indexOf('dist=true') > 0);            
+            if (typeof document !== "undefined") {
+                min = document.location.href.toLowerCase().indexOf('dist=min') > 0;
+                useDist = (min || useDist || document.location.href.toLowerCase().indexOf('dist=true') > 0);
+            } else {
+                min = false;
+                useDist = false;
+                workerMode = true;
+            }
             babylonJSPath = '';
         }
 
         Loader.prototype.debugShortcut = function(engine) {
             // Add inspector shortcut
             var map = {};
-            var onkey = function(e){
+            var onkey = function(e) {
                 e = e || event; // to deal with IE
                 map[e.keyCode] = e.type == 'keydown';
-                if(map[17] && map[16] && map[18] && map[73]) {
+                if (map[17] && map[16] && map[18] && map[73]) {
                     if (engine.scenes && engine.scenes.length > 0) {
-                        for (var i = 0; i < engine.scenes.length; i ++) {
+                        for (var i = 0; i < engine.scenes.length; i++) {
                             if (engine.scenes[0].debugLayer.isVisible()) {
                                 engine.scenes[0].debugLayer.hide();
                             }
@@ -69,12 +85,12 @@ var BABYLONDEVTOOLS;
             document.addEventListener("keyup", onkey);
         }
 
-        Loader.prototype.root = function (newBabylonJSPath) {
+        Loader.prototype.root = function(newBabylonJSPath) {
             babylonJSPath = newBabylonJSPath;
             return this;
         }
 
-        Loader.prototype.require = function (newDependencies) {
+        Loader.prototype.require = function(newDependencies) {
             if (typeof newDependencies === 'string') {
                 dependencies.push(newDependencies);
             }
@@ -86,149 +102,212 @@ var BABYLONDEVTOOLS;
             return this;
         }
 
-        Loader.prototype.onReady = function (newCallback) {
+        Loader.prototype.onReady = function(newCallback) {
             callback = newCallback;
             return this;
         }
 
-        Loader.prototype.dequeue = function () {
-            if (queue.length == 0) {
+        Loader.prototype.testMode = function() {
+            testMode = true;
+            return this;
+        }
+
+        Loader.prototype.useDist = function() {
+            useDist = true;
+            return this;
+        }
+
+        Loader.prototype.dequeue = function() {
+            if (queue.length + esmQueue.length === 0) {
                 console.log('Scripts loaded');
-                BABYLON.Engine.ShadersRepository = "/src/Shaders/"; 
-                if (callback) {                    
+
+                if (BABYLON) {
+                    BABYLON.Engine.ShadersRepository = "/src/Shaders/";
+                }
+                if (callback) {
                     callback();
                 }
-                return;                
+                return;
             }
 
-            var url = queue.shift();
-            
+            if (typeof document === "undefined") {
+                let url = esmQueue.length ? esmQueue.shift() : queue.shift();
+                console.log(url);
+                importScripts(url);
+                this.dequeue();    
+                return;
+            } 
+
             var head = document.getElementsByTagName('head')[0];
             var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = url;
+
+            if (esmQueue.length) {
+                script.type = 'module';
+                script.src = esmQueue.shift();
+            }
+            else {
+                script.type = 'text/javascript';
+                script.src = queue.shift();
+            }
 
             var self = this;
-            script.onload = function() {
-                self.dequeue();
-            };
+            if (isIE) { // I love you IE
+                setTimeout(function() {
+                    self.dequeue();
+                }, 500);
+            } else {
+                script.onload = function() {
+                    self.dequeue();
+                };
+            }
             head.appendChild(script);
         }
 
-        Loader.prototype.loadScript = function (url) {
+        Loader.prototype.loadScript = function(url) {
             queue.push(url);
         }
 
-        Loader.prototype.loadCss = function (url) {
-            var head = document.getElementsByTagName('head')[0];
+        Loader.prototype.loadESMScript = function(url) {
+            esmQueue.push(url);
+        }
 
+        Loader.prototype.loadCss = function(url) {
             var style = document.createElement('link');
             style.href = url;
             style.rel = "stylesheet";
-            style.type = "text/css"
+            style.type = "text/css";
             document.head.appendChild(style);
         }
 
-        Loader.prototype.loadScripts = function (urls) {
-            for (var i = 0; i< urls.length; i++) {
+        Loader.prototype.loadScripts = function(urls) {
+            for (var i = 0; i < urls.length; i++) {
                 this.loadScript(urls[i]);
             }
         }
 
-        Loader.prototype.loadLibrary = function (library, module) {
-            if (!useDist) {
-                var i = 0;
-                for (; i < library.files.length; i++) {
-                    var file = library.files[i];
-                    if (file.indexOf('lib.d.ts') > 0) {
-                        continue;
-                    } 
-
-                    file = file.replace('.ts', '.js');
-                    file = file.replace('../', '');
-                    file = babylonJSPath + '/' + file;
-                    this.loadScript(file);
-                }
-
-                if (library.shaderFiles && library.shaderFiles.length > 0) {
-                    var shaderFile = library.shaderFiles[0];
-                    var endDirectoryIndex = shaderFile.lastIndexOf('/');
-                    shaderFile = shaderFile.substring(0, endDirectoryIndex + 1);
-                    shaderFile += library.output.replace('.js', '.js.fx');
-                    file = file.replace('../', '');
-                    file = babylonJSPath + '/' + file;
-                    this.loadScript(shaderFile);
-                }
+        Loader.prototype.loadLibrary = function(moduleName, library, module) {
+            if (library.preventLoadLibrary) {
+                return;
             }
-            else if (min) {
-                if (library.webpack) {
-                    this.loadScript(babylonJSPath + '/dist/preview release' + module.build.distOutputDirectory + library.output.replace('.js', '.bundle.js'));
+
+            var distFolder = (module.build.distOutputDirectory !== undefined) ?
+                module.build.distOutputDirectory :
+                "/" + moduleName;
+            distFolder += "/";
+            
+            if (!useDist) {
+                if (workerMode && module.build.ignoreInWorkerMode) {
+                    return;
+                }
+                var tempDirectory = '/.temp/' + localDevUMDFolderName + distFolder;
+                this.loadScript((babylonJSPath + tempDirectory + library.output)
+                    .replace(".min.", ".")
+                    .replace(".max.", "."));
+            }
+            else if (!testMode || !module.build.ignoreInTestMode) {
+                if (min) {
+                    this.loadScript(babylonJSPath + '/dist/preview release' + distFolder + library.output);
                 }
                 else {
-                    this.loadScript(babylonJSPath + '/dist/preview release' + module.build.distOutputDirectory + library.output.replace('.js', '.min.js'));
+                    var isMinOutputName = library.output.indexOf(".min.") > -1;
+                    if (isMinOutputName) {
+                        this.loadScript(babylonJSPath + '/dist/preview release' + distFolder + library.output.replace(".min", ""));
+                    }
+                    else {
+                        this.loadScript(babylonJSPath + '/dist/preview release' + distFolder + library.output.replace(".js", ".max.js"));
+                    }
                 }
             }
+        }
+
+        Loader.prototype.loadCoreDev = function() {
+            if (typeof document === "undefined" || isIE) {
+                this.loadScript(babylonJSPath + "/dist/preview release/babylon.max.js");
+                return;
+            }
+            // Es6 core import
+            this.loadESMScript(babylonJSPath + "/.temp/" + localDevES6FolderName + "/core/Legacy/legacy.js");
+        }
+
+        Loader.prototype.loadModule = function(moduleName, module) {
+            for (var i = 0; i < module.libraries.length; i++) {
+                if (!useDist && module.isCore) {
+                    this.loadCoreDev();
+                }
+                else {
+                    this.loadLibrary(moduleName, module.libraries[i], module);
+                }
+            }
+        }
+
+        Loader.prototype.loadApp = function(appName, app) {
+            if (!window || !window.location || window.location.pathname.toLowerCase().indexOf(appName.toLowerCase()) === -1) {
+                return;
+            }
+
+            if (!useDist && app.tempFileName) {
+                var tempDirectory = '/.temp/' + localDevUMDFolderName + appName + "/";
+                this.loadScript(tempDirectory + app.tempFileName);
+            }
             else {
-                this.loadScript(babylonJSPath + '/dist/preview release' + module.build.distOutputDirectory + library.output);
-            }
-
-            if (!min && library.sassFiles && library.sassFiles.length > 0) {
-                var cssFile = library.output.replace('.js', '.css');
-                cssFile = babylonJSPath + '/dist/preview release' +  module.build.distOutputDirectory + cssFile;
-                this.loadCss(cssFile);
+                this.loadScript(app.distFile);
             }
         }
 
-        Loader.prototype.loadModule = function (module) {
-            for (var i = 0; i< module.libraries.length; i++) {
-                this.loadLibrary(module.libraries[i], module);
+        Loader.prototype.processDependency = function(settings, dependency, filesToLoad) {
+            if (dependency.dependUpon) {
+                for (var i = 0; i < dependency.dependUpon.length; i++) {
+                    var dependencyName = dependency.dependUpon[i];
+                    var parent = settings.workloads[dependencyName];
+                    this.processDependency(settings, parent, filesToLoad);
+                }
+            }
+
+            for (var i = 0; i < dependency.files.length; i++) {
+                var file = dependency.files[i];
+
+                if (filesToLoad.indexOf(file) === -1) {
+                    filesToLoad.push(file);
+                }
             }
         }
 
-        Loader.prototype.loadBJSScripts = function (settings) {
-
-            if (!useDist) {
-                this.loadScripts(settings.core.files);
-                this.loadScripts(settings.extras.files);
+        Loader.prototype.loadBJSScripts = function(settings) {
+            // Load all the modules from the config.json.
+            for (var i = 0; i < settings.modules.length; i++) {
+                this.loadModule(settings.modules[i], settings[settings.modules[i]]);
             }
-            else if (min) {
-                this.loadScript('/dist/preview release/babylon.js');
-            }
-            else {
-                this.loadScript('/dist/preview release/babylon.max.js');
-            }
-
-            for (var i = 0; i< settings.modules.length; i++) {
-                this.loadModule(settings[settings.modules[i]]);
+            for (var i = 0; i < settings.apps.length; i++) {
+                this.loadApp(settings.apps[i], settings[settings.apps[i]]);
             }
         }
 
-        Loader.prototype.load = function (newCallback) {
+        Loader.prototype.load = function(newCallback) {
             var self = this;
             if (newCallback) {
                 callback = newCallback;
             }
-            getJson('/Tools/Gulp/config.json',
+            getJson('/Tools/Config/config.json',
                 function(data) {
-                    if (!min) {
-                        self.loadScript('/dist/preview release/split.js');
-                    }
+                    localDevES6FolderName = data.build.localDevES6FolderName;
+                    localDevUMDFolderName = data.build.localDevUMDFolderName;
 
                     self.loadBJSScripts(data);
+
                     if (dependencies) {
                         self.loadScripts(dependencies);
                     }
 
                     self.dequeue();
                 },
-                function(reason) { 
+                function(reason) {
                     console.error(reason);
                 }
             );
         };
 
         return Loader;
-    }());    
+    }());
 
     var loader = new Loader();
     BABYLONDEVTOOLS.Loader = loader;

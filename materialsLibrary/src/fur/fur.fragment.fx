@@ -6,6 +6,7 @@ uniform vec4 vDiffuseColor;
 
 // Input
 uniform vec4 furColor;
+uniform float furLength;
 varying vec3 vPositionW;
 varying float vfur_length;
 
@@ -17,8 +18,11 @@ varying vec3 vNormalW;
 varying vec4 vColor;
 #endif
 
+// Helper functions
+#include<helperFunctions>
+
 // Lights
-#include<lightFragmentDeclaration>[0..maxSimultaneousLights]
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 // Samplers
 #ifdef DIFFUSE
@@ -30,6 +34,7 @@ uniform vec2 vDiffuseInfos;
 // Fur uniforms
 #ifdef HIGHLEVEL
 uniform float furOffset;
+uniform float furOcclusion;
 uniform sampler2D furTexture;
 
 varying vec2 vFurUV;
@@ -66,6 +71,8 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 	baseColor.rgb *= vDiffuseInfos.y;
 #endif
 
@@ -90,14 +97,19 @@ void main(void) {
 	
     float occlusion = mix(0.0, furTextureColor.b * 1.2, furOffset);
     
-	baseColor = vec4(baseColor.xyz * occlusion, 1.1 - furOffset);
+	baseColor = vec4(baseColor.xyz * max(occlusion, furOcclusion), 1.1 - furOffset);
 	#endif
 
 	// Lighting
 	vec3 diffuseBase = vec3(0., 0., 0.);
     lightingInfo info;
+
 	float shadow = 1.;
 	float glossiness = 0.;
+
+#ifdef SPECULARTERM
+	vec3 specularBase = vec3(0., 0., 0.);
+#endif
 
 	#include<lightFragment>[0..maxSimultaneousLights]
 
@@ -111,11 +123,14 @@ void main(void) {
 	#ifdef HIGHLEVEL
 	vec4 color = vec4(finalDiffuse, alpha);
 	#else
-	float r = vfur_length * 0.5;
+	float r = vfur_length / furLength * 0.5;
 	vec4 color = vec4(finalDiffuse * (0.5 + r), alpha);
 	#endif
 	
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
+
 }

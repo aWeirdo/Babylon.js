@@ -11,19 +11,20 @@ varying vec3 vPositionW;
 varying vec3 vNormalW;
 #endif
 
-#ifdef VERTEXCOLOR
-varying vec4 vColor;
-#endif
+#ifdef LIGHTING
+// Helper functions
+#include<helperFunctions>
 
 // Lights
-#include<lightFragmentDeclaration>[0]
-#include<lightFragmentDeclaration>[1]
-#include<lightFragmentDeclaration>[2]
-#include<lightFragmentDeclaration>[3]
+#include<__decl__lightFragment>[0]
+#include<__decl__lightFragment>[1]
+#include<__decl__lightFragment>[2]
+#include<__decl__lightFragment>[3]
 
 
 #include<lightsFragmentFunctions>
 #include<shadowsFragmentFunctions>
+#endif
 
 // Samplers
 #ifdef DIFFUSE
@@ -57,15 +58,13 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 	baseColor.rgb *= vDiffuseInfos.y;
 #endif
 
 #ifdef NORMAL
     baseColor = mix(baseColor, vec4(vNormalW, 1.0), 0.5);
-#endif
-
-#ifdef VERTEXCOLOR
-	baseColor.rgb *= vColor.rgb;
 #endif
 
 	// Normal
@@ -76,6 +75,8 @@ void main(void) {
 #endif
 
 	// Lighting
+
+#ifdef LIGHTING
 	vec3 diffuseBase = vec3(0., 0., 0.);
     lightingInfo info;
 	float shadow = 1.;
@@ -85,13 +86,10 @@ void main(void) {
 #include<lightFragment>[1]
 #include<lightFragment>[2]
 #include<lightFragment>[3]
-
-
-#ifdef VERTEXALPHA
-	alpha *= vColor.a;
-#endif
-
 	vec3 finalDiffuse = clamp(diffuseBase * diffuseColor, 0.0, 1.0) * baseColor.rgb;
+#else
+	vec3 finalDiffuse =  baseColor.rgb;
+#endif
 
 	// Composition
 	vec4 color = vec4(finalDiffuse, alpha);
@@ -99,4 +97,7 @@ void main(void) {
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
+
 }

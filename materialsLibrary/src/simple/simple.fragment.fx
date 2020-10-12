@@ -15,9 +15,11 @@ varying vec3 vNormalW;
 varying vec4 vColor;
 #endif
 
-// Lights
-#include<lightFragmentDeclaration>[0..maxSimultaneousLights]
+// Helper functions
+#include<helperFunctions>
 
+// Lights
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 #include<lightsFragmentFunctions>
 #include<shadowsFragmentFunctions>
@@ -54,6 +56,8 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 	baseColor.rgb *= vDiffuseInfos.y;
 #endif
 
@@ -73,7 +77,10 @@ void main(void) {
     lightingInfo info;
 	float shadow = 1.;
     float glossiness = 0.;
-    
+
+#ifdef SPECULARTERM
+	vec3 specularBase = vec3(0., 0., 0.);
+#endif    
 #include<lightFragment>[0..maxSimultaneousLights]
 
 
@@ -89,4 +96,6 @@ void main(void) {
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
 }

@@ -3,7 +3,11 @@ varying vec2 vUV;
 uniform sampler2D diffuseSampler;
 #endif
 
-uniform float far;
+varying float vDepthMetric;
+
+#ifdef PACKED
+	#include<packingFunctions>
+#endif
 
 void main(void)
 {
@@ -12,6 +16,17 @@ void main(void)
 		discard;
 #endif
 
-	float depth = (gl_FragCoord.z / gl_FragCoord.w) / far;
-	gl_FragColor = vec4(depth, depth * depth, 0.0, 1.0);
+#ifdef NONLINEARDEPTH
+	#ifdef PACKED
+		gl_FragColor = pack(gl_FragCoord.z);
+	#else
+		gl_FragColor = vec4(gl_FragCoord.z, 0.0, 0.0, 0.0);
+	#endif
+#else
+	#ifdef PACKED
+		gl_FragColor = pack(vDepthMetric);
+	#else
+		gl_FragColor = vec4(vDepthMetric, 0.0, 0.0, 1.0);
+	#endif
+#endif
 }

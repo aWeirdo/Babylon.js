@@ -2,8 +2,8 @@ window.prepareFur = function() {
 	var shells = 30;
 	var meshes = [];
 	
-	var diffuseTexture = new BABYLON.Texture("../assets/textures/leopard_fur.jpg", scene);
-	var heightTexture = new BABYLON.Texture("../assets/textures/speckles.jpg", scene);
+	var diffuseTexture = new BABYLON.Texture("/Playground/textures/leopard_fur.JPG", scene);
+	var heightTexture = new BABYLON.Texture("/Playground/textures/speckles.jpg", scene);
 	var furTexture = BABYLON.FurMaterial.GenerateTexture("furTexture", scene);
 	
 	var fur = new BABYLON.FurMaterial("fur", scene);
@@ -114,7 +114,14 @@ window.prepareFur = function() {
 		setValue("furSpacing", value);
     }, function() {
         return fur.furSpacing;
-    });
+	});
+	
+	// Fur Occlusion
+	registerRangeUI("fur", "Fur Occlusion", 0, 2, function (value) {
+		setValue("furOcclusion", value);
+	}, function () {
+		return fur.furOcclusion;
+	});
     
     return {
 		material: fur,

@@ -9,7 +9,7 @@ Build Babylon.js with [gulp](http://gulpjs.com/ "gulp") and npm ([nodejs](http:/
 
 ### First install gulp :
 ```
-npm install -g gulp
+npm install -g gulp@4.0.0
 ```
 
 ### Install some dependencies :
@@ -22,70 +22,34 @@ npm install
 npm update
 ```
 
-### Update config.json if you want to add your own files:
-```
-"extras" : {
-    "files": [
-        "file1.js", "file2.js"
-    ]
-}
-```
-## From the javascript source
-### Build Babylon.js from the javascript files:
+## Build all the distributed files and tests (release build):
 
 ```
-gulp
+npm run build
 ```
-Will be generated :
-- babylon.js
-- babylon.noworker.js (minified version without collisions workers)
-- babylon.max.js (unminified)
+Will generate all the files of the dist/preview release folder.
 
-## From the typescript source
-### Build Babylon.js from the typescript files:
+## Build all the distributed files without tests (release build):
 
-```
-gulp typescript
-```
-Will be generated :
-- babylon.js
-- babylon.d.ts
-- babylon.noworker.js (minified version without collisions workers)
-- babylon.max.js (unminified)
-
-Be aware that all js files content will be overwritten.
-
-### Build Babylon.js when you save a typescript file:
-```
-gulp watch
-```
-
-### Run Integrated Web Server and watch for changes:
-```
-gulp run
-```
-
-you can now freely test in the following URLs:
-- [Playground]("http://localhost:1338/Playground/index-local.html")
-- [Materials Library]("http://localhost:1338/materialsLibrary/index.html")
-- [Postprocess Library]("http://localhost:1338/postProcessLibrary/index.html")
-- [Procedural Textures Library]("http://localhost:1338/proceduralTexturesLibrary/index.html")
-- [Local Dev Samples]("http://localhost:1338/localDev/index.html")
-
-### Compile all the typscript files to their javascript respective files including declaration file
-```
-gulp typescript-compile
-```
-
-Be aware that all js files content will be overwritten.
-
-### Compile all the libraries
 ```
 gulp typescript-libraries
 ```
+Will generate all the files of the dist/preview release folder.
 
-Be aware that all js files content will be overwritten.
+## Run all the tests (release build):
 
-### Compile all the typscript and the library
 ```
-gulp typescript-all
+gulp tests-all
+```
+
+## Run Integrated Web Server and watch for changes (dev build):
+```
+npm start
+```
+
+you can now freely test in the following URLs:
+- [Playground](http://localhost:1338/Playground/index-local.html)
+- [Materials Library](http://localhost:1338/materialsLibrary/index.html)
+- [Postprocess Library](http://localhost:1338/postProcessLibrary/index.html)
+- [Procedural Textures Library](http://localhost:1338/proceduralTexturesLibrary/index.html)
+- [Local Dev Samples](http://localhost:1338/localDev/index.html)

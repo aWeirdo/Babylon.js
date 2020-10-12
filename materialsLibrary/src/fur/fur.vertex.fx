@@ -62,7 +62,7 @@ varying vec4 vColor;
 
 #include<clipPlaneVertexDeclaration>
 #include<fogVertexDeclaration>
-#include<shadowsVertexDeclaration>[0..maxSimultaneousLights]
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 float Rand(vec3 rv) {
 	float x = dot(rv, vec3(12.9898,78.233, 24.65487));
@@ -76,8 +76,12 @@ void main(void) {
 
 //FUR
 float r = Rand(position);
-#ifdef HEIGHTMAP	
-	vfur_length = furLength * texture2D(heightTexture, uv).rgb.x;
+#ifdef HEIGHTMAP
+	#if __VERSION__ > 100
+	vfur_length = furLength * texture(heightTexture, uv).x;
+	#else
+	vfur_length = furLength * texture2D(heightTexture, uv).r;
+	#endif
 #else	
 	vfur_length = (furLength * r);
 #endif
@@ -111,11 +115,7 @@ float r = Rand(position);
 	#endif
 	
 	#ifdef NORMAL
-	#ifdef HIGHLEVEL
-	vNormalW = normalize(vec3(finalWorld * vec4(normal, 0.0)) * aNormal);
-	#else
 	vNormalW = normalize(vec3(finalWorld * vec4(normal, 0.0)));
-	#endif
 	#endif
 	
 //END FUR

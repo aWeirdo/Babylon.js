@@ -48,17 +48,18 @@ varying vec4 vColor;
 #include<clipPlaneVertexDeclaration>
 
 #include<fogVertexDeclaration>
-#include<shadowsVertexDeclaration>[0..maxSimultaneousLights]
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 void main(void)
 {
 
 	#include<instancesVertex>
     #include<bonesVertex>
-	
-	gl_Position = viewProjection * finalWorld * vec4(position, 1.0);
 
 	vec4 worldPos = finalWorld * vec4(position, 1.0);
+
+	gl_Position = viewProjection * worldPos;
+
 	vPositionW = vec3(worldPos);
 
 #ifdef DIFFUSEX
@@ -92,7 +93,7 @@ void main(void)
 	   
 	worldTangent = (world * vec4(worldTangent, 1.0)).xyz;
     worldBinormal = (world * vec4(worldBinormal, 1.0)).xyz;
-	vec3 worldNormal = normalize(cross(worldTangent, worldBinormal));
+	vec3 worldNormal = (world * vec4(normalize(normal), 1.0)).xyz;
 
 	tangentSpace[0] = worldTangent;
     tangentSpace[1] = worldBinormal;

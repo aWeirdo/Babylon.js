@@ -2,16 +2,17 @@
 
 // Constants
 uniform vec3 vEyePosition;
-uniform vec4 vDiffuseColor;
 
 // Gradient variables
 uniform vec4 topColor;
 uniform vec4 bottomColor;
 uniform float offset;
+uniform float scale;
 uniform float smoothness;
 
 // Input
 varying vec3 vPositionW;
+varying vec3 vPosition;
 
 #ifdef NORMAL
 varying vec3 vNormalW;
@@ -21,23 +22,18 @@ varying vec3 vNormalW;
 varying vec4 vColor;
 #endif
 
-// Lights
+// Helper functions
+#include<helperFunctions>
 
-#include<lightFragmentDeclaration>[0]
-#include<lightFragmentDeclaration>[1]
-#include<lightFragmentDeclaration>[2]
-#include<lightFragmentDeclaration>[3]
+// Lights
+#include<__decl__lightFragment>[0]
+#include<__decl__lightFragment>[1]
+#include<__decl__lightFragment>[2]
+#include<__decl__lightFragment>[3]
 
 
 #include<lightsFragmentFunctions>
 #include<shadowsFragmentFunctions>
-
-// Samplers
-#ifdef DIFFUSE
-varying vec2 vDiffuseUV;
-uniform sampler2D diffuseSampler;
-uniform vec2 vDiffuseInfos;
-#endif
 
 #include<clipPlaneFragmentDeclaration>
 
@@ -49,7 +45,7 @@ void main(void) {
 
 	vec3 viewDirectionW = normalize(vEyePosition - vPositionW);
 
-    float h = normalize(vPositionW).y + offset;
+    float h = vPosition.y * scale + offset;
     float mysmoothness = clamp(smoothness, 0.01, max(smoothness, 10.));
 
     vec4 baseColor = mix(bottomColor, topColor, max(pow(max(h, 0.0), mysmoothness), 0.0));
@@ -66,6 +62,8 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 #ifdef VERTEXCOLOR
 	baseColor.rgb *= vColor.rgb;
 #endif
@@ -78,15 +76,16 @@ void main(void) {
 #endif
 
 	// Lighting
+#ifdef EMISSIVE
+	vec3 diffuseBase = baseColor.rgb;
+#else
 	vec3 diffuseBase = vec3(0., 0., 0.);
+#endif
     lightingInfo info;
 	float shadow = 1.;
     float glossiness = 0.;
     
-#include<lightFragment>[0]
-#include<lightFragment>[1]
-#include<lightFragment>[2]
-#include<lightFragment>[3]
+#include<lightFragment>[0..maxSimultaneousLights]
 
 #ifdef VERTEXALPHA
 	alpha *= vColor.a;
@@ -100,4 +99,7 @@ void main(void) {
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
+
 }

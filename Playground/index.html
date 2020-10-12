@@ -1,129 +1,88 @@
 ﻿<!DOCTYPE html>
 <html>
-<head>
-    <title>Babylon.js Playground</title>
-    <script src="https://babylonjs.azurewebsites.net/poly2tri.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
-    <!--x-tag-->
-    <script src="xtag.min.js"></script>
-    <script src="splitbox.js"></script>
-    <link href="splitbox.css" rel="stylesheet" />
-    <!-- jszip -->
-    <script src="jszip.min.js"></script>
-    <script src="fileSaver.js"></script>
-    <!-- Bootstrap -->
-    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
-    <!-- Babylon.js -->
-    <script src="https://babylonjs.azurewebsites.net/cannon.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/Oimo.js"></script>
-    <!--<script src="../babylon.js"></script>-->
-    <script src="https://babylonjs.azurewebsites.net/babylon.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/babylon.canvas2d.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/babylon.inspector.bundle.js"></script>
-    
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.fireMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.waterMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.lavaMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.normalMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.skyMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.triPlanarMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.terrainMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.gradientMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.furMaterial.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.gridMaterial.min.js"></script>
 
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.brickProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.cloudProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.fireProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.grassProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.marbleProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.roadProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.starfieldProceduralTexture.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.woodProceduralTexture.min.js"></script>
+    <head>
+        <title>Babylon.js Playground</title>
+        <meta charset='utf-8' />
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <link rel="shortcut icon" href="https://www.babylonjs.com/favicon.ico">
+        <meta name="description" content="Babylon.js playground is a live editor for Babylon.js WebGL 3D scenes">
+        <meta name="keywords" content="Babylon.js,WebGL,3D">
+        
+        <link rel="stylesheet" href="https://use.typekit.net/cta4xsb.css">
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" />
 
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.asciiArtPostProcess.min.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.digitalRainPostProcess.min.js"></script>
+        <!-- Pep -->
+        <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script>
+        <!--For canvas/code separator-->
+        <script src="/libs/split.js"></script>
 
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.glTFFileLoader.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.objFileLoader.js"></script>
-    <script src="https://babylonjs.azurewebsites.net/lib/babylon.stlFileLoader.js"></script>
-    <link href="index.css" rel="stylesheet" />
-</head>
-<body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-        <div class="navbar-inner" id="topbar">
-            <a class="brand largeOnly" href="#" id="mainTitle">Babylon.js Playground</a>
-            <div class="btn-group">
-                <button class="btn" id="runButton">Run</button>
-                <button class="btn" id="saveButton">Save</button>
-                <button class="btn desktopOnly" id="zipButton">Get .zip</button>
-                <button class="btn desktopOnly" id="newButton">New</button>
-                <button class="btn desktopOnly" id="clearButton">Clear</button>
-            </div>
-            <div class="btn-group desktopOnly">
-                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-                    <span id="currentFontSize">Font: 12</span>
-                    <span class="caret"></span>
-                </a>
-                <ul class="dropdown-menu" id="sizeList">
-                    <li><a href="#" onclick="setFontSize(12);">12</a></li>
-                    <li><a href="#" onclick="setFontSize(14);">14</a></li>
-                    <li><a href="#" onclick="setFontSize(16);">16</a></li>
-                    <li><a href="#" onclick="setFontSize(18);">18</a></li>
-                    <li><a href="#" onclick="setFontSize(20);">20</a></li>
-                    <li><a href="#" onclick="setFontSize(22);">22</a></li>
-                </ul>
-            </div>
-            <div class="btn-group">
-                <label class="btn btn-sm active">
-                    <input type="checkbox" autocomplete="off" id='safemodeToggle' style="margin-top:-0.1em;margin-right:4px">Safe Mode
-                </label>
-                <button class="btn btn-sm" id="editorButton">-Editor</button>
-                <button class="btn btn-sm" id="debugButton">+Debug layer</button>
-            </div>
-            <div class="btn-group pull-right">
-                <button class="btn" id="fullscreenButton">Fullscreen</button>
-            </div>
-            <div class="btn-group pull-right">
-                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-                    <span id="currentScript">Predefined scripts</span>
-                    <span class="caret"></span>
-                </a>
-                <ul class="dropdown-menu" id="scriptsList"></ul>
-            </div>
-        </div>
-    </div>
+        <!-- DatGUI -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <!-- jszip -->
+        <script src="/libs/jszip.min.js"></script>
+        <script src="/libs/fileSaver.js"></script>
 
-    <x-splitbox>
-        <div id="jsEditor"></div>
-        <div splitter></div>
-        <div id="canvasZone">
-            <canvas id="renderCanvas"></canvas>
-        </div>
-    </x-splitbox>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery.js"></script>
+        <script src="https://rawcdn.githack.com/jeromeetienne/jquery-qrcode/master/jquery.qrcode.min.js"></script>        
 
-    <span class="label" id="fpsLabel">FPS</span>
+        <!-- Dependencies -->
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/recast.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        
+        <!-- Babylon.js -->
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/nodeEditor/babylon.nodeEditor.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
 
-    <div id="errorZone">
-    </div>
+         <!-- Extensions -->
+         <script
+             src="https://rawcdn.githack.com/BabylonJS/Extensions/f43ab677b4bca0a6ab77132d3f785be300382760/ClonerSystem/src/babylonx.cloner.js"
+             >
+         </script>
+         <script
+             src="https://rawcdn.githack.com/BabylonJS/Extensions/785013ec55b210d12263c91f3f0a2ae70cf0bc8a/CompoundShader/src/babylonx.CompoundShader.js"
+             ></script>
+ 
+         <!-- Scene Manager -->
+         <script
+             src="https://rawcdn.githack.com/MackeyK24/MackeyK24.github.io/14fda491c50cfca6d3e2f6cbc5e6afe22cc455d6/toolkit/babylon.manager.js">
+         </script>
+         <script
+             src="https://rawcdn.githack.com/MackeyK24/MackeyK24.github.io/14fda491c50cfca6d3e2f6cbc5e6afe22cc455d6/toolkit/babylon.navmesh.js">
+         </script>        
 
-    <div class="navbar navbar-inverse navbar-fixed-bottom">
-        <div class="navbar-inner">
-            <ul class="nav pull-left">
-                <li id="statusBar"></li>
-            </ul>
-            <ul class="nav pull-right">
-                <li><a href="http://www.html5gamedevs.com/forum/16-babylonjs/">Forum</a></li>
-                <li><a href="https://babylonjs.azurewebsites.net/sandbox">Sandbox</a></li>
-                <li><a href="https://github.com/BabylonJS/Babylon.js/wiki">Wiki</a></li>
-                <li><a href="https://doc.babylonjs.com">Documentation</a></li>
-            </ul>
-        </div>
-    </div>
+        <style>
+            html,
+            body,
+            #host-element {
+                width: 100%;
+                height: 100%;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+        </style>        
+    </head>
 
-    <script src="https://code.jquery.com/jquery.js"></script>
-    <script src="bootstrap/js/bootstrap.min.js"></script>
-    <script src="index.js"></script>
-</body>
+    <body>        
+        <div id="host-element">
+        </div>   
+        
+        <script src="/dist/babylon.playground.js"></script>
+        
+        <script src="/index.js"></script>
+    </body>
+
 </html>

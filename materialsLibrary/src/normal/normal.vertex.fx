@@ -39,24 +39,20 @@ varying vec3 vPositionW;
 varying vec3 vNormalW;
 #endif
 
-#ifdef VERTEXCOLOR
-varying vec4 vColor;
-#endif
-
-
 #include<clipPlaneVertexDeclaration>
 
 #include<fogVertexDeclaration>
-#include<shadowsVertexDeclaration>[0..maxSimultaneousLights]
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 void main(void) {
 
 #include<instancesVertex>
 #include<bonesVertex>
 
-	gl_Position = viewProjection * finalWorld * vec4(position, 1.0);
-
 	vec4 worldPos = finalWorld * vec4(position, 1.0);
+
+	gl_Position = viewProjection * worldPos;
+
 	vPositionW = vec3(worldPos);
 
 #ifdef NORMAL
@@ -88,11 +84,6 @@ void main(void) {
     // Fog
 #include<fogVertex>
 #include<shadowsVertex>[0..maxSimultaneousLights]
-
-	// Vertex color
-#ifdef VERTEXCOLOR
-	vColor = color;
-#endif
 
 	// Point size
 #ifdef POINTSIZE

@@ -26,11 +26,14 @@ varying vec3 vNormalW;
 varying vec4 vColor;
 #endif
 
+// Helper functions
+#include<helperFunctions>
+
 // Lights
-#include<lightFragmentDeclaration>[0]
-#include<lightFragmentDeclaration>[1]
-#include<lightFragmentDeclaration>[2]
-#include<lightFragmentDeclaration>[3]
+#include<__decl__lightFragment>[0]
+#include<__decl__lightFragment>[1]
+#include<__decl__lightFragment>[2]
+#include<__decl__lightFragment>[3]
 
 
 #include<lightsFragmentFunctions>
@@ -105,6 +108,8 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 	baseColor.rgb *= vDiffuseInfos.y;
 #endif
 
@@ -119,6 +124,10 @@ void main(void) {
 	vec3 normalW = vec3(1.0, 1.0, 1.0);
 #endif
 
+#ifdef UNLIT
+	vec3 diffuseBase = vec3(1., 1., 1.);
+#else
+
 	// Lighting
 	vec3 diffuseBase = vec3(0., 0., 0.);
     lightingInfo info;
@@ -130,6 +139,7 @@ void main(void) {
 #include<lightFragment>[2]
 #include<lightFragment>[3]
 
+#endif
 
 #ifdef VERTEXALPHA
 	alpha *= vColor.a;
@@ -143,4 +153,6 @@ void main(void) {
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
 }

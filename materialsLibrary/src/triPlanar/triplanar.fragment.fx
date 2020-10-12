@@ -15,8 +15,11 @@ varying vec3 vPositionW;
 varying vec4 vColor;
 #endif
 
+// Helper functions
+#include<helperFunctions>
+
 // Lights
-#include<lightFragmentDeclaration>[0..maxSimultaneousLights]
+#include<__decl__lightFragment>[0..maxSimultaneousLights]
 
 // Samplers
 #ifdef DIFFUSEX
@@ -105,6 +108,8 @@ void main(void) {
 		discard;
 #endif
 
+#include<depthPrePass>
+
 #ifdef VERTEXCOLOR
 	baseColor.rgb *= vColor.rgb;
 #endif
@@ -142,4 +147,7 @@ void main(void) {
 #include<fogFragment>
 
 	gl_FragColor = color;
+
+#include<imageProcessingCompatibility>
+
 }
